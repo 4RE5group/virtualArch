@@ -1,0 +1,140 @@
+body {
+    font-family: 'Courier New', monospace;
+    background: #121212;
+    color: #e0e0e0;
+    margin: 0;
+    padding: 20px;
+}
+
+.emulator-container {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    gap: 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.control-panel {
+    background: #1e1e1e;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #444;
+}
+
+.binary-switches {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
+}
+
+.switch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.switch input {
+    margin-top: 5px;
+    transform: scale(1.5);
+}
+
+.output-display {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.output-display span {
+    font-weight: bold;
+}
+
+.btn {
+    background: #6200ea;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.2s;
+}
+
+.btn:hover {
+    background: #7c4dff;
+}
+
+.registers-panel {
+    display: flex;
+    gap: 20px;
+    background: #1e1e1e;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #444;
+}
+
+.register {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.register p {
+    color: #bb86fc;
+    margin: 0;
+}
+
+.code-editor-container {
+    position: relative;
+    background: #1e1e1e;
+    border-radius: 8px;
+    border: 1px solid #444;
+    overflow: hidden;
+}
+
+.line-numbers {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 40px;
+    padding: 10px 0;
+    text-align: center;
+    background: #2d2d2d;
+    color: #888;
+    font-size: 14px;
+    user-select: none;
+}
+
+.code-editor {
+    width: 100%;
+    height: 400px;
+    padding: 10px 0 10px 50px;
+    background: #1e1e1e;
+    color: #e0e0e0;
+    border: none;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.5;
+    resize: none;
+    outline: none;
+}
+
+.pc-display {
+    padding: 10px;
+    background: #2d2d2d;
+    text-align: center;
+    font-weight: bold;
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px;
+    background: #2d2d2d;
+}
+
+.highlight-line {
+    background: rgba(98, 0, 234, 0.2);
+    border-left: 3px solid #6200ea;
+}
