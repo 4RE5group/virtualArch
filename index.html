@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Emulator</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&amp;display=swap" data-tag="font">
 </head>
 <body>
     <div class="emulator-container">
@@ -92,15 +93,14 @@
                 let num = asm_to_opcode(line.trim());
                 if (num == -1) {
                     console.error(`error at line ${i+1}`);
+                    reset();
                     return;
                 }
                 rom[i] = Number(num);
                 i++;
             });
             console.log(`successfully writted ${i} op codes to rom!`);
-            registers.pc = 0;// reset pc           
-            // update pc display           
-            document.getElementById("pc_num").innerText = registers.pc + 1;
+            reset();
         }
 
         function highlightCurrentLine(pc)
@@ -108,33 +108,35 @@
             const lines = document.querySelector('.code-editor').value.split('\n');
             const lineNumbers = document.querySelector('.line-numbers');
             lineNumbers.innerHTML = lines.map((_, i) =>
-                `<div${i === pc ? ' class="highlight-line"' : ''}>${i+1}</div>`
+                `<div${i+1 === pc ? ' class="highlight-line"' : ''}>${i+1}</div>`
             ).join('');
         }
 
         // Call highlightCurrentLine in stepExec and editRom
-        function stepExec() {
+        function stepExec()
+        {
             registers.pc++;
             if (registers.pc <= 0)
             {
                 alert("error: pc is outside range '"+registers.pc+"'");
                 return;
             }
-            if (registers.pc >= rom.length) registers.pc = 1;
+            if (registers.pc > rom.length) registers.pc = 1;
+            highlightCurrentLine(registers.pc);
             document.getElementById("pc_num").innerText = registers.pc;
             asm_exec_opcode(rom[registers.pc - 1]);
             viewUpdate();
-            highlightCurrentLine(registers.pc);
         }
 
         function reset()
         {
-            registers.pc = 0;
-            document.getElementById("pc_num").innerText = registers.pc + 1;
+            registers.pc = 1;
+            document.getElementById("pc_num").innerText = registers.pc;
+            highlightCurrentLine(1);
         }
 
         var stopRun = false;
-        var runSpeed = 1 * 1000;
+        var runSpeed = 250;
 
         function run()
         {
