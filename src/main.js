@@ -65,7 +65,17 @@ const registers = {
     get d() { return this._d; },
     set d(v) { this._d = v; },
 
-    // *a
+    // e
+    _e: 0x0000000000000000,
+    get e() { return this._e; },
+    set e(v) { this._e = v; },
+
+    // f
+    _f: 0x0000000000000000,
+    get f() { return this._f; },
+    set f(v) { this._f = v; },
+
+    // *a (custom register)
     get a_ptr() {
         return (ram.read);
     },
@@ -109,7 +119,11 @@ function addMemoryMapping(name, request_mode, start_offset, stop_offset, callbac
 
 // opcode format:
 // 16 bits
-// ci - - * - u op1 op0 zx sw a d *a lt eq gt
+// ci
+// ci  e  f * - u op1 op0 zx sw a d *a lt eq gt
+//
+// l2 == 0    => D     l2 == 1   => E    (left term)
+// r2 == 0    => A     r2 == 1   => F    (right term)
 function    asm_exec_opcode(opcode)
 {
     if (typeof(opcode) != 'number')
@@ -120,6 +134,8 @@ function    asm_exec_opcode(opcode)
 
     let ci =            Number(opcode & (1 << 15))?1:0;
     let pointer =       Number(opcode & (1 << 12))?1:0;
+    let l2 =            Number(opcode & (1 << 14))?1:0;
+    let r2 =            Number(opcode & (1 << 13))?1:0;
     let destination =   (opcode & parseInt("0000000000111000", 2)) >> 3;
     let calculation =   (opcode & parseInt("0000011111000000", 2)) >> 6;
     let condition =     (opcode & parseInt("0000000000000111", 2));
@@ -135,16 +151,13 @@ function    asm_exec_opcode(opcode)
         let sw =        Number(calculation & 1)?1:0;
         
         var output = 0;
-        var left_term = registers.d;
-        var right_term = registers.a;
-
-        console.log("a: "+right_term);
+        var left_term = (l2 == 0)?registers.d:registers.e;
+        var right_term = (r2 == 0)?registers.a:registers.f;
 
         if (pointer === 1) {
             right_term = registers.a_ptr;
         }
 
-        console.log("a: "+right_term);
 
         // left term
         if (zx === 1)
@@ -480,7 +493,7 @@ function displayRom()
     {
         if (rom[i] === null)
             continue;
-        console.log(" ci   -   -   *   -   u op1 op0  zx  sw   a   d  *a  lt  eq  gt");
+        console.log(" ci  l2   r2   *   -   u op1 op0  zx  sw   a   d  *a  lt  eq  gt");
         let line = "";
         let binary = (rom[i] >>> 0).toString(2);
         let start_index = Math.abs(binary.length - 16);
