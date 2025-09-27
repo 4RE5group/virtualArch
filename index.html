@@ -44,7 +44,7 @@
 
         <div class="code-editor-container">
             <div class="line-numbers"></div>
-            <textarea class="code-editor" onchange="editRom()" spellcheck="false"></textarea>
+            <textarea class="code-editor" autocomplete="on" oninput="editRom()" name="asmcode" spellcheck="false"></textarea>
             <div class="pc-display">PC: <span id="pc_num">0</span></div>
             <div class="controls">
                 <button class="btn" onclick="stepExec()">Step</button>
@@ -58,6 +58,13 @@
     <script src="./src/utils.js"></script>
     <script>        
         var result = 0;
+        addMemoryMapping("test1", "RW", 123, 456, (index, type, value) => {
+            if (type === "R")
+                console.log("reading index: '"+index+"'");
+            else if (type === "W")
+                console.log("writing index: '"+index+"', value: '"+value+"'");
+            return (index);
+        });
 
         function viewUpdate()
         {
@@ -70,21 +77,33 @@
             }
             document.getElementById("decimal_result").innerText = result;
             document.getElementById("hexadecimal_result").innerText = "0x" + result.toString(16);
+
+            // Helper function to format 16-bit unsigned hex
+            function formatHex(value)
+            {
+                // Convert to 16-bit unsigned integer
+                const unsignedValue = value & 0xffff;
+                return "0x" + unsignedValue.toString(16).padStart(4, '0');
+            }
+
             // a
-            document.querySelector(".registers-panel").children.item(0).children.item(1).innerText = "0x" + registers.a.toString(16);
+            document.querySelector(".registers-panel").children.item(0).children.item(1).innerText = formatHex(registers.a);
             document.querySelector(".registers-panel").children.item(0).children.item(2).innerText = "(" + registers.a + ")";
-            
+
             // d
-            document.querySelector(".registers-panel").children.item(1).children.item(1).innerText = "0x" + registers.d.toString(16);
+            document.querySelector(".registers-panel").children.item(1).children.item(1).innerText = formatHex(registers.d);
             document.querySelector(".registers-panel").children.item(1).children.item(2).innerText = "(" + registers.d + ")";
 
             // *a
-            document.querySelector(".registers-panel").children.item(2).children.item(1).innerText = "0x" + registers.a_ptr.toString(16);
+            document.querySelector(".registers-panel").children.item(2).children.item(1).innerText = formatHex(registers.a_ptr);
             document.querySelector(".registers-panel").children.item(2).children.item(2).innerText = "(" + registers.a_ptr + ")";
         }
 
         function editRom() 
         {
+            // clear terminal
+            console.clear();
+
             var lines = document.querySelector(".code-editor").value.split("\n");
             let i = 0;
             rom = [];
@@ -130,8 +149,8 @@
 
         function reset()
         {
-            registers.pc = 1;
-            document.getElementById("pc_num").innerText = registers.pc;
+            registers.pc = 0;
+            document.getElementById("pc_num").innerText = registers.pc + 1;
             highlightCurrentLine(1);
         }
 

@@ -1,9 +1,35 @@
+/*
+    4re5 group, all rights reserved.
+*/
+
+
+// definitions
+const RAMSIZE = 4096; // ram size in bytes
+
+
+
+
+// listing of all memory ranges mapped
+const memoryMap = [];
+// rom containing program
 var rom = [];
 
+
+
+// device virtual memory
 const ram = {
-    _memory: new Array(4096).fill(0),
+    _memory: new Array(RAMSIZE).fill(0),
+    _mapping: [],
     get read() {
         // verify ram index
+        // let isMappedMemory = false;
+        this._mapping.forEach(map => {
+            if (map["start_offset"] <= registers.a < map["stop_offset"])
+            {
+                // isMappedMemory = true;
+                return (map["callback"](registers.a, "R", 0));
+            }
+        });
         if (this._memory.length > registers.a && registers.a >= 0) {
             return (this._memory[registers.a]);
         }
@@ -11,6 +37,14 @@ const ram = {
     },
     set write(v) {
         // verify ram index
+        this._mapping.forEach(map => {
+            if (map["start_offset"] <= registers.a < map["stop_offset"])
+            {
+                // isMappedMemory = true;
+                map["callback"](registers.a, "W", v);
+                return;
+            }
+        });
         if (this._memory.length > registers.a && registers.a >= 0)
         {
             this._memory[registers.a] = v;
@@ -43,6 +77,34 @@ const registers = {
     set pc(v) { this._pc = v; }
 };
 
+/*
+    Add a memory mapping from start_offset to stop_offset that will be triggered if accessed/edited
+    e.g. ranges goes from index = 3 (included) to index = 6 (excluded) 
+*/
+function addMemoryMapping(name, request_mode, start_offset, stop_offset, callback)
+{
+    if (start_offset >= 0 && start_offset < RAMSIZE && 
+        stop_offset >= 0 && stop_offset < RAMSIZE  &&
+        start_offset <= stop_offset)
+    {
+        let map = new Map();
+        map["name"] = name;
+        map["request_mode"] = request_mode;
+        map["start_offset"] = start_offset;
+        map["stop_offset"] = stop_offset;
+        map["callback"] = callback;
+        ram._mapping.push(map);
+        console.log("added a new mapping from "+start_offset+" to "+stop_offset+" type: "+request_mode);
+    }
+    else
+    {
+        console.error("error: invalid memory range");
+        return (-1);
+    }
+}
+
+
+
 // opcode format:
 // 16 bits
 // ci - - * - u op1 op0 zx sw a d *a lt eq gt
@@ -60,7 +122,7 @@ function    asm_exec_opcode(opcode)
     let calculation =   (opcode & parseInt("0000011111000000", 2)) >> 6;
     let condition =     (opcode & parseInt("0000000000000111", 2));
     
-    if (ci == 0) // set default register to value
+    if (ci === 0) // set default register to value
         registers.a = Number(opcode & (~(1 << 15)));
     else
     {
@@ -71,51 +133,52 @@ function    asm_exec_opcode(opcode)
         let sw =        Number(calculation & 1)?1:0;
         
         var output = 0;
-        let left_term = registers.d;
-        let right_term = registers.a;
+        var left_term = registers.d;
+        var right_term = registers.a;
 
-        if (pointer == 1) {
+        if (pointer === 1) {
             right_term = registers.a_ptr;
         }
 
-
         // left term
-        if (zx == 1)
+        if (zx === 1)
             left_term = 0;
         
+        // right term
+        if (u === 1 && op0 === 1)
+            right_term = 1;
+        
         // swap left and right terms
-        if (sw == 1)
+        if (sw === 1)
         {
-            let tmp = left_term;
+            var tmp = right_term;
             right_term = left_term;
             left_term = tmp;
         }
+ 
         
-        if (u == 1) // u = 1  arithmetic operation
+        if (u === 1) // u = 1  arithmetic operation
         {
-            // right term
-            if (op0 == 1 && sw == 0)
-                right_term = 1;
-            else if (op0 == 1 && sw == 1)
-                left_term = 1;
+            // else if (op0 === 1 && sw === 1)
+            //     left_term = 1;
 
-            if (op1 == 1) // substraction
+            if (op1 === 1) // substraction
                 output = left_term - right_term;
             else // addition
                 output = left_term + right_term;
         }
         else // logic operation
         {
-            if (op1 == 1) 
+            if (op1 === 1) 
             {
-                if (op0 == 1) // invert
+                if (op0 === 1) // invert
                     output = ~left_term;
                 else // xor
                     output = left_term ^ right_term;
             }
             else
             {
-                if (op0 == 1) // or
+                if (op0 === 1) // or
                     output = left_term | right_term;
                 else // and
                     output = left_term & right_term;
@@ -126,13 +189,13 @@ function    asm_exec_opcode(opcode)
         let to_d = Number(destination & (1 << 1))?1:0;
         let to_a_ptr = Number(destination & 1)?1:0;
 
-        if (to_a == 1) {
+        if (to_a === 1) {
             registers.a = output;
         }
-        if (to_a_ptr == 1) {
+        if (to_a_ptr === 1) {
             registers.a_ptr = output;
         }
-        if (to_d == 1) {
+        if (to_d === 1) {
             registers.d = output;
         }
 
@@ -141,7 +204,7 @@ function    asm_exec_opcode(opcode)
         let eq = Number(condition & (1 << 1))?1:0;
         let gt = Number(condition & 1)?1:0;
 
-        if ((lt == 1 && output < 0) || (eq == 1 && output == 0) || (gt == 1 && output > 0))
+        if ((lt === 1 && output < 0) || (eq === 1 && output === 0) || (gt === 1 && output > 0))
         {
             registers.pc = output;
         }
@@ -194,11 +257,11 @@ function asm_to_opcode(input)
             for (let k=0; k<dests_parts.length; k++)
             {
                 dests_parts[k] = dests_parts[k].trim();
-                if (dests_parts[k] == "A") 
+                if (dests_parts[k] === "A") 
                     to_a = 1;
-                else if (dests_parts[k] == "D") 
+                else if (dests_parts[k] === "D") 
                     to_d = 1;
-                else if (dests_parts[k] == "*A") 
+                else if (dests_parts[k] === "*A") 
                     to_a_ptr = 1;
                 else
                 {
@@ -220,6 +283,7 @@ function asm_to_opcode(input)
     let zx = 0; // zero extend
     let sw = 0; // swap
 
+    for (let i=0; i<1; i++) { // used like a goto
     if (operation)
     {
         let operation_symbol = "";
@@ -258,12 +322,30 @@ function asm_to_opcode(input)
             op1 = 1;
             op0 = 1;
             operation_symbol = "~";
+            let right_term = operation.replace(operation_symbol, "").trim();
+            
+            // if    sw = 0  A = ~D
+            // else  sw = 1  A = ~A
+            if (right_term === "D")
+                sw = 0;
+            else if (right_term === "A")
+                sw = 1;
+            else if (right_term === "*A")
+            {
+                sw = 1;
+                pointer = 1;
+            }
+            else {
+                console.error("error: invalid operation: "+operation);
+                return (-1);
+            }
+            break;
         }
         else if (isNumeric(operation)) // if that's a constant assignation
         {
-            if (destination == "A" && !condition)
+            if (destination === "A" && !condition)
                 return Number(operation); // return opcode
-            if (operation == "0") // A = 0   =>  A = 0 & D
+            if (operation === "0") // A = 0   =>  A = 0 & D
             {
                 operation_symbol = "&";
                 u = 0;
@@ -273,7 +355,7 @@ function asm_to_opcode(input)
                 sw = 0;
                 operation = "A&0";
             } 
-            else if (operation == "1") // A = 1   =>  A = 0 + 1
+            else if (operation === "1") // A = 1   =>  A = 0 + 1
             {
                 operation_symbol = "+";
                 u = 1;
@@ -294,11 +376,11 @@ function asm_to_opcode(input)
             u = 1; // addition
             op0 = 0;
             operation_symbol = "+";
-            if (operation == "D") // A = D   =>   A = D + 0
+            if (operation === "D") // A = D   =>   A = D + 0
             {
                 operation += "+0"; 
             }
-            else if (operation == "A" || operation == "*A")
+            else if (operation === "A" || operation === "*A")
             {
                 operation = "0+" + operation;
             }
@@ -317,24 +399,24 @@ function asm_to_opcode(input)
         // op1 = 1  => 1 to right term only if addition/substraction mode
 
         // check for zero extend
-        if (left_term == "0") {
+        if (left_term === "0") {
             zx = 1;
         }
-        else if (right_term == "0")
+        else if (right_term === "0")
         {
             zx = 1;
             sw = 1; // swap to make the 0 appear in right term
         }
 
-        if (operation_symbol == "+" || operation_symbol == "-") // only if operation type is addition or substraction
+        if (operation_symbol === "+" || operation_symbol === "-") // only if operation type is addition or substraction
         {
             u = 1;
             // check for 1 extend
-            if (left_term == "1") {
+            if (left_term === "1") {
                 op0 = 1;
                 sw = 1;
             }
-            else if (right_term == "1")
+            else if (right_term === "1")
             {
                 op0 = 1;
                 sw = 0;
@@ -343,35 +425,35 @@ function asm_to_opcode(input)
 
         // check for terms swap (D+A default, A+D swap)
         // normal case (no swap)
-        if ((left_term == "D" || left_term == "0" || left_term == "1")
-                && (right_term == "A" || right_term == "*A" || right_term == "1")) 
+        if ((left_term === "D" || left_term === "0" || (left_term === "1" && u === 1))
+                && (right_term === "A" || right_term === "*A" || (right_term === "1" && u === 1))) 
         {
-            if (right_term == "*A")
+            if (right_term === "*A")
                 pointer = 1;
         } // swapped version
-        else if ((left_term == "1" || left_term == "A" || left_term == "*A")
-                && (right_term == "D" || right_term == "0" || right_term == "1"))
+        else if (((left_term === "1" && u === 1) || left_term === "A" || left_term === "*A")
+                && (right_term === "D" || right_term === "0" || (right_term === "1" && u === 1)))
         {
             sw = 1;
-            if (left_term == "*A")
+            if (left_term === "*A")
                 pointer = 1;
         }
         else {
             console.error("invalid operation: '"+operation+"'");
             return (-1);
         }
-
-        // set calculation bits
-        opcode |= ((u << 4) | (op1 << 3) | (op0 << 2) | (zx << 1) | sw) << 6;
-        // pointer
-        opcode |= (pointer << 12)
-    }
+    }}
+    // set calculation bits
+    opcode |= ((u << 4) | (op1 << 3) | (op0 << 2) | (zx << 1) | sw) << 6;
+    // pointer
+    opcode |= (pointer << 12);
 
     // Parse jump condition
-    if (condition) {
-        let lt = (condition == "JLT" || condition == "JLE" || condition == "JMP") ? 1 : 0;
-        let eq = (condition == "JEQ" || condition == "JLE" || condition == "JMP" || condition == "JGE") ? 1 : 0;
-        let gt = (condition == "JGT" || condition == "JGE" || condition == "JMP") ? 1 : 0;
+    if (condition)
+    {
+        let lt = (condition === "JLT" || condition === "JLE" || condition === "JMP") ? 1 : 0;
+        let eq = (condition === "JEQ" || condition === "JLE" || condition === "JMP" || condition === "JGE") ? 1 : 0;
+        let gt = (condition === "JGT" || condition === "JGE" || condition === "JMP") ? 1 : 0;
 
         // Set condition bits (bits 2-0)
         opcode |= ((lt << 2) | (eq << 1) | gt);
