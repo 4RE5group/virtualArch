@@ -4,8 +4,7 @@
 
 
 // definitions
-const RAMSIZE = 4096; // ram size in bytes
-
+const RAMSIZE = 1048576; // ram size in bytes
 
 
 
@@ -15,37 +14,40 @@ const memoryMap = [];
 var rom = [];
 
 
-
 // device virtual memory
 const ram = {
     _memory: new Array(RAMSIZE).fill(0),
     _mapping: [],
-    get read() {
+    get read()
+    {
         // verify ram index
-        // let isMappedMemory = false;
+        let result = null;
         this._mapping.forEach(map => {
-            if (map["start_offset"] <= registers.a < map["stop_offset"])
+            if (map["request_mode"].includes("R") && map["start_offset"] <= registers.a < map["stop_offset"])
             {
-                // isMappedMemory = true;
-                return (map["callback"](registers.a, "R", 0));
+                result = map["callback"](registers.a, "R", 0);
+                return (result);
             }
         });
-        if (this._memory.length > registers.a && registers.a >= 0) {
+        if (result === null && this._memory.length > registers.a && registers.a >= 0)
             return (this._memory[registers.a]);
-        }
+        else if (result != null) // return mapped memory
+            return (result);
         return (-1);
     },
-    set write(v) {
+    set write(v)
+    {
         // verify ram index
+        let result = null;
         this._mapping.forEach(map => {
-            if (map["start_offset"] <= registers.a < map["stop_offset"])
+            if (map["request_mode"].includes("W") && map["start_offset"] <= registers.a < map["stop_offset"])
             {
-                // isMappedMemory = true;
                 map["callback"](registers.a, "W", v);
+                result = 0;
                 return;
             }
         });
-        if (this._memory.length > registers.a && registers.a >= 0)
+        if (result === null && this._memory.length > registers.a && registers.a >= 0)
         {
             this._memory[registers.a] = v;
         }
@@ -89,7 +91,7 @@ function addMemoryMapping(name, request_mode, start_offset, stop_offset, callbac
     {
         let map = new Map();
         map["name"] = name;
-        map["request_mode"] = request_mode;
+        map["request_mode"] = request_mode.toUpperCase();
         map["start_offset"] = start_offset;
         map["stop_offset"] = stop_offset;
         map["callback"] = callback;
@@ -136,9 +138,13 @@ function    asm_exec_opcode(opcode)
         var left_term = registers.d;
         var right_term = registers.a;
 
+        console.log("a: "+right_term);
+
         if (pointer === 1) {
             right_term = registers.a_ptr;
         }
+
+        console.log("a: "+right_term);
 
         // left term
         if (zx === 1)
@@ -455,6 +461,11 @@ function asm_to_opcode(input)
         let eq = (condition === "JEQ" || condition === "JLE" || condition === "JMP" || condition === "JGE") ? 1 : 0;
         let gt = (condition === "JGT" || condition === "JGE" || condition === "JMP") ? 1 : 0;
 
+        if (lt === 0 && eq === 0 && gt === 0)
+        {
+            console.error("error: invalid condition: '"+condition+"'");
+            return (-1);
+        }
         // Set condition bits (bits 2-0)
         opcode |= ((lt << 2) | (eq << 1) | gt);
     }
@@ -467,6 +478,8 @@ function displayRom()
 {
     for(let i=0; i<rom.length; i++)
     {
+        if (rom[i] === null)
+            continue;
         console.log(" ci   -   -   *   -   u op1 op0  zx  sw   a   d  *a  lt  eq  gt");
         let line = "";
         let binary = (rom[i] >>> 0).toString(2);

@@ -53,18 +53,21 @@
                 <button class="btn" onclick="reset()">Reset</button>
             </div>
         </div>
+        <canvas id="terminal_screen" width="640" height="480"></canvas>
     </div>
     <script src="src/main.js"></script>
+    <script src="./src/terminal.js"></script>
     <script src="./src/utils.js"></script>
     <script>        
         var result = 0;
-        addMemoryMapping("test1", "RW", 123, 456, (index, type, value) => {
-            if (type === "R")
-                console.log("reading index: '"+index+"'");
-            else if (type === "W")
-                console.log("writing index: '"+index+"', value: '"+value+"'");
-            return (index);
+        // add screen buffer mapping
+        addMemoryMapping("screen_buffer", "W", RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT), RAMSIZE-1, function (index, type, value) {
+            screen_buffer[registers.d] = value * 255;
+            return;
         });
+        initScreen();
+        displayScreen();
+
 
         function viewUpdate()
         {
@@ -95,8 +98,8 @@
             document.querySelector(".registers-panel").children.item(1).children.item(2).innerText = "(" + registers.d + ")";
 
             // *a
-            document.querySelector(".registers-panel").children.item(2).children.item(1).innerText = formatHex(registers.a_ptr);
-            document.querySelector(".registers-panel").children.item(2).children.item(2).innerText = "(" + registers.a_ptr + ")";
+            // document.querySelector(".registers-panel").children.item(2).children.item(1).innerText = formatHex(registers.a_ptr);
+            // document.querySelector(".registers-panel").children.item(2).children.item(2).innerText = "(" + registers.a_ptr + ")";
         }
 
         function editRom() 
@@ -108,14 +111,18 @@
             let i = 0;
             rom = [];
             lines.forEach(line => {
-                // console.log("line: '" + line.trim() + "'");
-                let num = asm_to_opcode(line.trim());
-                if (num == -1) {
-                    console.error(`error at line ${i+1}`);
-                    reset();
-                    return;
+                // skip comments and new lines
+                if (!line.trim().startsWith(";") && line.trim() != "") {
+                    let num = asm_to_opcode(line.trim());
+                    if (num == -1) {
+                        console.error(`error at line ${i+1}`);
+                        reset();
+                        return;
+                    }
+                    rom[i] = Number(num);
                 }
-                rom[i] = Number(num);
+                else
+                    rom[i] == null;
                 i++;
             });
             console.log(`successfully writted ${i} op codes to rom!`);
@@ -143,7 +150,8 @@
             if (registers.pc > rom.length) registers.pc = 1;
             highlightCurrentLine(registers.pc);
             document.getElementById("pc_num").innerText = registers.pc;
-            asm_exec_opcode(rom[registers.pc - 1]);
+            if (rom[registers.pc - 1] != null) // skip comments/non code lines
+                asm_exec_opcode(rom[registers.pc - 1]);
             viewUpdate();
         }
 
