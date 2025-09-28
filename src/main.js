@@ -493,7 +493,7 @@ function displayRom()
     {
         if (rom[i] === null)
             continue;
-        console.log(" ci  l2   r2   *   -   u op1 op0  zx  sw   a   d  *a  lt  eq  gt");
+        console.log(" ci   -   -   *   -   u op1 op0  zx  sw   a   d  *a  lt  eq  gt");
         let line = "";
         let binary = (rom[i] >>> 0).toString(2);
         let start_index = Math.abs(binary.length - 16);

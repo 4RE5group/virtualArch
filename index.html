@@ -53,7 +53,12 @@
                 <button class="btn" onclick="reset()">Reset</button>
             </div>
         </div>
-        <canvas id="terminal_screen" width="640" height="480"></canvas>
+
+		<div class="terminal">
+			<p>Live terminal</p>
+			<canvas id="terminal_screen" width="640" height="480"></canvas>
+		</div>
+        
     </div>
     <script src="src/main.js"></script>
     <script src="./src/terminal.js"></script>
@@ -61,10 +66,18 @@
     <script>        
         var result = 0;
         // add screen buffer mapping
-        addMemoryMapping("screen_buffer", "W", RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT), RAMSIZE-1, function (index, type, value) {
-            screen_buffer[registers.d] = value * 255;
-            return;
+		// placed at the end of the memory range
+        addMemoryMapping("screen_buffer", "W", RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT), RAMSIZE-1, (index, type, value) => {
+            if (registers.d >= 0 && registers.d < SCREEN_WIDTH*SCREEN_HEIGHT)
+				screen_buffer[registers.d] = value;
         });
+
+		// add character mapping
+		addMemoryMapping("character_display", "W", RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT)-1, RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT), (index, type, value) => {
+			console.log("writing character "+registers.d+"'"+String.fromCharCode(registers.d)+"'");
+            writeCharacter(0, 0, String.fromCharCode(registers.d));
+		});
+
         initScreen();
         displayScreen();
 
@@ -98,9 +111,10 @@
             document.querySelector(".registers-panel").children.item(1).children.item(2).innerText = "(" + registers.d + ")";
 
             // *a
-            // document.querySelector(".registers-panel").children.item(2).children.item(1).innerText = formatHex(registers.a_ptr);
-            // document.querySelector(".registers-panel").children.item(2).children.item(2).innerText = "(" + registers.a_ptr + ")";
-        }
+            document.querySelector(".registers-panel").children.item(2).children.item(1).innerText = formatHex(registers.a_ptr);
+            document.querySelector(".registers-panel").children.item(2).children.item(2).innerText = "(" + registers.a_ptr + ")";
+			displayScreen();
+		}
 
         function editRom() 
         {
@@ -138,7 +152,6 @@
             ).join('');
         }
 
-        // Call highlightCurrentLine in stepExec and editRom
         function stepExec()
         {
             registers.pc++;
@@ -157,6 +170,7 @@
 
         function reset()
         {
+			clearScreen();
             registers.pc = 0;
             document.getElementById("pc_num").innerText = registers.pc + 1;
             highlightCurrentLine(1);

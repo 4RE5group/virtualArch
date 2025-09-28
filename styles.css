@@ -13,6 +13,11 @@ body {
     line-height: 1.15;
 }
 
+.terminal {
+	background-color: #373737;
+	padding: 8px;
+}
+
 .emulator-container {
     display: grid;
     grid-template-rows: auto 1fr;

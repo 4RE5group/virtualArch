@@ -46,6 +46,11 @@ e.g `A = 15; JMP` will jump to line `15`.
 `D = A+1; JMP` will jump to the line `A+1`
 
 ## TODO list
-- [ ] Add memory mapping for a simple tty interface/graphic interface
+- [x] Add memory mapping for a simple tty interface/graphic interface
 - [ ] Make the js code a whole package
 - [ ] Create a simple game on this architecture
+
+Asm Language improvement
+- [ ] add DEFINE for preprocessing data
+- [ ] handle hex and binary numbers when defining A register
+- [ ] add labels for better jumps
