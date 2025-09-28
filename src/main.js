@@ -23,7 +23,7 @@ const ram = {
         // verify ram index
         let result = null;
         this._mapping.forEach(map => {
-            if (map["request_mode"].includes("R") && map["start_offset"] <= registers.a < map["stop_offset"])
+            if (map["request_mode"].includes("R") && registers.a >= map["start_offset"] && registers.a < map["stop_offset"])
             {
                 result = map["callback"](registers.a, "R", 0);
                 return (result);
@@ -40,7 +40,7 @@ const ram = {
         // verify ram index
         let result = null;
         this._mapping.forEach(map => {
-            if (map["request_mode"].includes("W") && map["start_offset"] <= registers.a < map["stop_offset"])
+            if (map["request_mode"].includes("W") && registers.a >= map["start_offset"] && registers.a < map["stop_offset"])
             {
                 map["callback"](registers.a, "W", v);
                 result = 0;

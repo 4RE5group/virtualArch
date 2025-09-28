@@ -74,8 +74,12 @@
 
 		// add character mapping
 		addMemoryMapping("character_display", "W", RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT)-1, RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT), (index, type, value) => {
-			console.log("writing character "+registers.d+"'"+String.fromCharCode(registers.d)+"'");
-            writeCharacter(0, 0, String.fromCharCode(registers.d));
+			console.log("writing character "+registers.d+"='"+String.fromCharCode(registers.d)+"'");
+            // cursor pos is stored in memory at address RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT)-2
+            let cursor = ram._memory[RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT)-2];
+            let x = Math.trunc(cursor % SCREEN_WIDTH);
+            let y = Math.trunc(cursor / SCREEN_WIDTH);
+            writeCharacter(x, y, String.fromCharCode(registers.d));
 		});
 
         initScreen();
@@ -126,7 +130,9 @@
             rom = [];
             lines.forEach(line => {
                 // skip comments and new lines
-                if (!line.trim().startsWith(";") && line.trim() != "") {
+                if (line.includes("#"))
+                    line = line.split("#")[0];
+                if (line.trim() != "") {
                     let num = asm_to_opcode(line.trim());
                     if (num == -1) {
                         console.error(`error at line ${i+1}`);

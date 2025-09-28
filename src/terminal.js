@@ -95,5 +95,5 @@ function clearScreen()
 {
 	// clean screen buffer
 	screen_buffer = new Array(SCREEN_WIDTH*SCREEN_HEIGHT).fill(0);
-    ctx.clearRect(0, 0, screen_canvas.width, screen_canvas.height);
+    displayScreen();
 }
