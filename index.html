@@ -56,7 +56,8 @@
 
 		<div class="terminal">
 			<p>Live terminal</p>
-			<canvas id="terminal_screen" width="640" height="480"></canvas>
+			<canvas id="terminal_screen" width="640" height="480" onclick="document.getElementById('terminal_input').focus()"></canvas>
+            <input id="terminal_input">
 		</div>
         
     </div>
@@ -74,16 +75,44 @@
 
 		// add character mapping
 		addMemoryMapping("character_display", "W", RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT)-1, RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT), (index, type, value) => {
-			console.log("writing character "+registers.d+"='"+String.fromCharCode(registers.d)+"'");
             // cursor pos is stored in memory at address RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT)-2
             let cursor = ram._memory[RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT)-2];
-            let x = Math.trunc(cursor % SCREEN_WIDTH);
-            let y = Math.trunc(cursor / SCREEN_WIDTH);
+            let max_char_per_line = SCREEN_WIDTH / (FONT_SIZE * 2);
+            let x = Math.trunc(cursor % max_char_per_line);
+            let y = Math.trunc(cursor / max_char_per_line);
             writeCharacter(x, y, String.fromCharCode(registers.d));
 		});
 
         initScreen();
         displayScreen();
+
+
+        document.getElementById("terminal_input").addEventListener("keydown", (e) => {
+            let output_char = 0;
+            console.log(e.code);
+            if (e.code.startsWith("Key"))
+                output_char = e.code.replace("Key", "").trim().charCodeAt(0);
+            else 
+            {
+                switch (e.code)
+                {
+                    case 'Space':
+                        output_char = " ".charCodeAt(0);
+                        break;
+                    case 'Backspace':
+                        output_char = 8;
+                        break;
+                }
+            }
+            ram._memory[RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT)-3] = output_char;
+        });
+
+        // to make lines follow code input
+        document.querySelector(".code-editor").addEventListener("scroll", () => {
+            document.querySelector(".line-numbers").scrollTop = document.querySelector(".code-editor").scrollTop;
+        });
+
+        document.querySelector(".line-numbers").style.height = (document.querySelector(".code-editor").clientHeight - 20)+"px";
 
 
         function viewUpdate()

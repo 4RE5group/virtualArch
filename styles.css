@@ -16,6 +16,19 @@ body {
 .terminal {
 	background-color: #373737;
 	padding: 8px;
+
+    input {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+        opacity: 0;
+    }
 }
 
 .emulator-container {
@@ -97,13 +110,18 @@ body {
 
 .code-editor-container {
     position: relative;
-    background: #1e1e1e;
     border-radius: 8px;
+    background: #1e1e1e;
+    width: 100%;
+    display: flex;
     border: 1px solid #444;
     overflow: hidden;
+    flex-direction: column;
 }
 
 .line-numbers {
+    overflow: hidden;
+    flex-shrink: 0;
     position: absolute;
     height: 100%;
     left: 0;
@@ -113,7 +131,8 @@ body {
     text-align: center;
     background: #2d2d2d;
     color: #888;
-    font-size: 18.5px;
+    line-height: 1.5;
+    font-size: 14px;
     user-select: none;
 }
 

@@ -78,17 +78,36 @@ function    updateScreenbuffer()
 }
 
 
-function	writeCharacter(column, row, character)
+
+function    writeCharacter(column, row, character)
 {
-	if (typeof(character) == 'string' && character.length === 1 && typeof(FONT_SIZE) == 'number')
-	{
-		ctx.font = FONT_SIZE+"px Arial";
-		ctx.fillStyle = "#ffffff";
-		ctx.fillText(character, column*FONT_SIZE, (row+1)*FONT_SIZE);
-        updateScreenbuffer();
-	} else {
-		console.error("error: invalid input");
-	}
+    if (typeof(character) == 'string' && character.length === 1 && typeof(FONT_SIZE) == 'number') {
+        // If is printable character
+        if (character.charCodeAt(0) >= 32 && character.charCodeAt(0) <= 127) {
+            ctx.font = FONT_SIZE + "px Arial";
+
+            // Draw black background rectangle
+            ctx.fillStyle = "#000000";
+            ctx.fillRect(
+                column * FONT_SIZE,
+                row * FONT_SIZE,
+                FONT_SIZE,
+                FONT_SIZE
+            );
+
+            // Draw the character
+            ctx.fillStyle = "#ffffff";
+            ctx.fillText(
+                character,
+                column * FONT_SIZE,
+                (row + 1) * FONT_SIZE - (FONT_SIZE * 0.1) // Adjust vertical position for better alignment
+            );
+
+            updateScreenbuffer();
+        }
+    } else {
+        console.error("error: invalid input");
+    }
 }
 
 function clearScreen()

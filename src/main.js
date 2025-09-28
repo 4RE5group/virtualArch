@@ -151,8 +151,8 @@ function    asm_exec_opcode(opcode)
         let sw =        Number(calculation & 1)?1:0;
         
         var output = 0;
-        var left_term = (l2 == 0)?registers.d:registers.e;
-        var right_term = (r2 == 0)?registers.a:registers.f;
+        var left_term = registers.d;
+        var right_term = registers.a;
 
         if (pointer === 1) {
             right_term = registers.a_ptr;
@@ -161,12 +161,17 @@ function    asm_exec_opcode(opcode)
 
         // left term
         if (zx === 1)
-            left_term = 0;
-        
-        // right term
+            if (sw === 1)
+                right_term = 0;
+            else
+                left_term = 0;
+
         if (u === 1 && op0 === 1)
-            right_term = 1;
-        
+            if (sw === 1)
+                left_term = 1;
+            else
+                right_term = 1;
+
         // swap left and right terms
         if (sw === 1)
         {
@@ -178,9 +183,6 @@ function    asm_exec_opcode(opcode)
         
         if (u === 1) // u = 1  arithmetic operation
         {
-            // else if (op0 === 1 && sw === 1)
-            //     left_term = 1;
-
             if (op1 === 1) // substraction
                 output = left_term - right_term;
             else // addition
@@ -225,7 +227,8 @@ function    asm_exec_opcode(opcode)
 
         if ((lt === 1 && output < 0) || (eq === 1 && output === 0) || (gt === 1 && output > 0))
         {
-            registers.pc = output;
+            // registers.pc = output;
+            registers.pc = registers.a;
         }
     }
 }
@@ -445,12 +448,12 @@ function asm_to_opcode(input)
         // check for terms swap (D+A default, A+D swap)
         // normal case (no swap)
         if ((left_term === "D" || left_term === "0" || (left_term === "1" && u === 1))
-                && (right_term === "A" || right_term === "*A" || (right_term === "1" && u === 1))) 
+                && (right_term === "0" || right_term === "A" || right_term === "*A" || (right_term === "1" && u === 1))) 
         {
             if (right_term === "*A")
                 pointer = 1;
         } // swapped version
-        else if (((left_term === "1" && u === 1) || left_term === "A" || left_term === "*A")
+        else if (((left_term === "1" && u === 1) || left_term === "0" || left_term === "A" || left_term === "*A")
                 && (right_term === "D" || right_term === "0" || (right_term === "1" && u === 1)))
         {
             sw = 1;
