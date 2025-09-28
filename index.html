@@ -90,8 +90,8 @@
         document.getElementById("terminal_input").addEventListener("keydown", (e) => {
             let output_char = 0;
             console.log(e.code);
-            if (e.code.startsWith("Key"))
-                output_char = e.code.replace("Key", "").trim().charCodeAt(0);
+            if (e.code.startsWith("Key") || e.code.startsWith("Digit") || e.code.startsWith("Numpad"))
+                output_char = e.code.replace("Key", "").replace("Digit", "").replace("Numpad", "").trim().charCodeAt(0);
             else 
             {
                 switch (e.code)
@@ -101,6 +101,31 @@
                         break;
                     case 'Backspace':
                         output_char = 8;
+                        break;
+                    case 'Enter':
+                        output_char = "\n".charCodeAt(0);
+                        break;
+                    case 'Escape':
+                        output_char = 27;
+                        break;
+
+                    case 'Period':
+                        output_char = ".".charCodeAt(0);
+                        break;
+                    case 'Comma':
+                        output_char = ",".charCodeAt(0);
+                        break;
+                    case 'Slash':
+                        output_char = "/".charCodeAt(0);
+                        break;
+                    case 'Semicolon':
+                        output_char = ";".charCodeAt(0);
+                        break;
+                    case 'Quote':
+                        output_char = "'".charCodeAt(0);
+                        break;
+                    case 'Backslash':
+                        output_char = "\\".charCodeAt(0);
                         break;
                 }
             }
@@ -155,13 +180,69 @@
             console.clear();
 
             var lines = document.querySelector(".code-editor").value.split("\n");
+            // handle define flags
+            var definitions = new Map();
+            let j = 0;
+            lines.forEach(line => {
+                line = line.trim();
+                if (line.startsWith("#"))
+                {
+                    if (line.replace("#", "").trim().startsWith("DEFINE "))
+                    {
+                        line = line.split("DEFINE")[1].trim();
+                        while (line.includes("  ")) // trim spaces between
+                            line = line.replaceAll("  ", " ");
+                        var elements = line.split(" ");
+                        if (elements.length != 2)
+                        {
+                            console.error("error: invalid DEFINE preprocessor flag: '"+line+"'");
+                            return;
+                        }
+                        // save definition
+                        definitions.set(elements[0].trim(), elements[1].trim());
+                    }
+                }
+                else if (line.endsWith(":") && !line.includes("#"))
+                {
+                    line = line.replaceAll(":", "").trim();
+                    definitions.set(line, j.toString());
+                    lines[j] = "#"+lines[j]; // comment line to skip it when running
+                }
+                j++;
+            });
+            // apply definitions
+            definitions.forEach((value, key) => {
+                // escape the key for use in a regex
+                const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const regex = new RegExp(`(^|[^a-zA-Z0-9_-])(${escapedKey})(?=[^a-zA-Z0-9_-]|$)`, 'g');
+                for(let i=0; i<lines.length; i++)
+                {
+                    // replace definition keyword in every lines
+                    lines[i] = lines[i].replace(regex, `$1${value}`);
+                }
+            });
+            console.log(lines.join("\n"));
+            console.log(definitions);
+
             let i = 0;
             rom = [];
             lines.forEach(line => {
+                // replace all char to its ascii value
+                line = line.replace(/(['"])(?:\\.|.)\1/g, (match, quote) => { 
+                    try
+                    {
+                        const content = match.slice(1, -1);
+                        // parse the content to handle escape sequences
+                        const char = JSON.parse(`"${content}"`);
+                        return char.charCodeAt(0);
+                    } catch (e) {
+                        return match;
+                    }
+                 });
                 // skip comments and new lines
                 if (line.includes("#"))
                     line = line.split("#")[0];
-                if (line.trim() != "") {
+                if (line.trim() != "" && !line.trim().endsWith(":")) { // skip empty lines and labels
                     let num = asm_to_opcode(line.trim());
                     if (num == -1) {
                         console.error(`error at line ${i+1}`);
@@ -172,6 +253,7 @@
                 }
                 else
                     rom[i] == null;
+                
                 i++;
             });
             console.log(`successfully writted ${i} op codes to rom!`);

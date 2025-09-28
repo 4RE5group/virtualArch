@@ -1,14 +1,18 @@
-# initialisation
-A = 64      # starting character - 1
-D = A
-A = 984574
-*A = 0-1     # reset the terminal cursor to pos 0 -1
+# DEFINE CURSOR 984574
+# DEFINE WRITE  984575
 
-# start of the program
-A = 984574  # address of the character position on screen
-*A = *A + 1 # increment it     
-D = D + 1
-A = 984575  # character write operation
-*A = D - 1  # set the character to write
-A = 7       # set the jump line address to line 8 (number 7)
-A; JMP      # repeat the operation
+A = 64       # starting character - 1
+D = A
+A = CURSOR
+*A = 0       # reset the terminal cursor to pos 0
+
+LOOP:
+    D = D + 1
+    A = WRITE   # character write operation
+    *A = D - 1  # set the character to write
+
+    A = CURSOR  # address of the character position on screen
+    *A = *A + 1 # increment it   
+
+    A = LOOP    # set the jump line address
+    A; JMP      # repeat the operation

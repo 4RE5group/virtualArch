@@ -1,63 +1,66 @@
 # initialisation
-A = 984574
-*A = 0-1     # reset the terminal cursor to pos 0 -1
+# DEFINE CURSOR   984574
+# DEFINE KEYPRESS 984573
+# DEFINE WRITE    984575
+
+A = CURSOR
+*A = 0-1         # reset the terminal cursor to pos 0 -1
 
 # start of the program
-A = 984574  # address of the cursor position on screen
-*A = *A + 1 # increment it
+LOOP:
+    A = CURSOR   # address of the cursor position on screen
+    *A = *A + 1  # increment it
 
-A = 984573  # keyboard input address
-D = *A      # read keyboard input
+LOOP_WITHOUT_ADDING:
+    A = KEYPRESS # keyboard input address
+    D = *A       # read keyboard input
 
-# if no input character skip
-A = 6
-D-1; JLE # if character code is 0 or less
+    # if no input character skip
+    A = LOOP_WITHOUT_ADDING
+    D-1; JLE     # if character code is 0 or less
 
-# if backspace (ascii code 8)
-A = 8
-D = D - A
-A = 37 # line 38
-D; JEQ # if d = 0 that mean d was equal to 8
+    # if backspace (ascii code 8)
+    A = '\b'
+    D = D - A
+    A = BACKSPACE
+    D; JEQ       # if d = 0 that mean d was equal to 8
 
-# add 8 again to retrieve the character
-A = 8
-D = D + A
+    # add 8 again to retrieve the character
+    A = '\b'
+    D = D + A
 
-A = 984575  # character write operation
-*A = D - 1  # set the character to write
+    A = WRITE    # character write operation
+    *A = D - 1   # set the character to write
 
-A = 984573
-*A = 0      # reset keyboard input
+    A = KEYPRESS
+    *A = 0       # reset keyboard input
 
-A = 5       # set the jump line address
-A; JMP      # repeat the operation
-
-
-
-
-# backspace operation
-# check if cursor position is 0, if so we can't delete a character
-A = 984574
-D = *A      # get current cursor position
-A = 5       # back to loop
-D; JEQ
+    A = LOOP     # set the jump line address
+    A; JMP       # repeat the operation
 
 
-A = 984574  # cursor position offset
-*A = *A - 1 # move cursor position backward
 
 
-A = 32      # space character
-D = A
+BACKSPACE:
+    # check if cursor position is 0, if so we can't delete a character
+    A = CURSOR
+    D = *A       # get current cursor position
+    A = LOOP     # back to loop
+    D; JEQ
 
-A = 984575  # character write operation
-*A = D      # write a space character
 
-A = 984574
-*A = *A - 1 # move cursor again to affect the +1 in the loop
+    A = CURSOR   # cursor position offset
+    *A = *A - 1  # move cursor position backward
 
-A = 984573
-*A = 0      # reset keyboard input
 
-A = 5       # go back to main loop
-A;JMP
+    A = ' '      # space character to clear last cursor
+    D = A
+
+    A = WRITE    # character write operation
+    *A = D       # write a space character
+
+    A = KEYPRESS
+    *A = 0       # reset keyboard input
+
+    A = LOOP_WITHOUT_ADDING     # go back to main loop
+    A;JMP

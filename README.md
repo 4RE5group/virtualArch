@@ -40,10 +40,14 @@ It only exists 6 ones.
 - JGT (jump if result  > 0)
 - JGE (jump if result >= 0)
 
-Any triggered jump will set the program counter (pc) to the value of the condition behind.
+Any triggered jump will set the program counter (pc) to the value of the A register.
 
-e.g `A = 15; JMP` will jump to line `15`.
-`D = A+1; JMP` will jump to the line `A+1`
+e.g
+```
+A = 15
+A;JMP
+```
+will jump to line `15`.
 
 ## TODO list
 - [x] Add memory mapping for a simple tty interface/graphic interface
@@ -51,6 +55,7 @@ e.g `A = 15; JMP` will jump to line `15`.
 - [ ] Create a simple game on this architecture
 
 Asm Language improvement
-- [ ] add DEFINE for preprocessing data
-- [ ] handle hex and binary numbers when defining A register
-- [ ] add labels for better jumps
+- [x] add DEFINE for preprocessing data
+- [x] handle chars when defining A register
+- [x] add labels for better jumps
+- [ ] add a text section that puts constants into memory
