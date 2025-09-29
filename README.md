@@ -11,7 +11,7 @@ These op codes are 16 bits of length and are formatted as follow:
     | ci | - | - | * | - | u | op1 | op0 | zx | sw | a | d | *a | lt | eq | gt |
 
 
-### Assembly manual
+### :book: Assembly manual
 #### Summary
 1. [Registers](#registers)
 2. [Conditions](#conditions)
@@ -26,7 +26,17 @@ e.g `A = 1234` sets the value `1234` into the `A` register
 
 Others registers can be copied using e.g `D = A`
 
-> *A is a special register. It is a pointer to computer memory
+> *A is a special register. It is a pointer to computer memory.
+For example
+```
+A = 1000
+*A = 1    # value to write at offset 1000
+```
+Or
+```
+A = 1000
+D = *A   # reads the memory at offset 1000
+```
 
 
 #### Conditions
@@ -53,6 +63,23 @@ A = 15
 A;JMP
 ```
 will jump to line `16` (pc starts at line 0 but line 1 in editor).
+
+
+### :book: C manual
+#### Summary
+1. [Builtin Functions](#builtin-functions)
+
+#### Builtin Functions
+virtualArch C compiler can handle several builtin functions.
+Here are the full list with examples.
+
+- write_char(char c)
+    - writes a character (here `c`) to the termial at cursor position defined
+    - e.g. `write_char('A');` will write the character 'A' to screen
+- set_cursor(int pos)
+    - sets the screen cursor position to the value of `pos`
+    - e.g. `set_cursor(5);` will set the cursor to position **5**
+
 
 ## TODO list
 - [x] Add memory mapping for a simple graphic interface
