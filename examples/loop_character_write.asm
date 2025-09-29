@@ -1,8 +1,5 @@
-# DEFINE CURSOR 984574
-# DEFINE WRITE  984575
-
-A = 64       # starting character - 1
-D = A
+A = 'A'      # starting character
+D = A - 1    # starting character - 1
 A = CURSOR
 *A = 0       # reset the terminal cursor to pos 0
 

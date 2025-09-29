@@ -1,8 +1,4 @@
 # initialisation
-# DEFINE CURSOR   984574
-# DEFINE KEYPRESS 984573
-# DEFINE WRITE    984575
-
 A = CURSOR
 *A = 0-1         # reset the terminal cursor to pos 0 -1
 
