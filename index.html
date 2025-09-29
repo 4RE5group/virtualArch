@@ -51,6 +51,7 @@
                 <button class="btn" onclick="run()">Run</button>
                 <button class="btn" onclick="stop()">Stop</button>
                 <button class="btn" onclick="reset()">Reset</button>
+                <label style="align-items: center; display: flex;">Speed<input id="runSpeedController" type="range" min="0" max="250" value="0"></label>
             </div>
         </div>
 
@@ -66,7 +67,7 @@
     <script src="./src/c_compiler.js"></script>
     <script src="./src/terminal.js"></script>
     
-    <script>        
+    <script>
         var result = 0;
         // add screen buffer mapping
 		// placed at the end of the memory range
@@ -79,7 +80,7 @@
 		addMemoryMapping("character_display", "W", RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT)-1, RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT), (index, type, value) => {
             // cursor pos is stored in memory at address RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT)-2
             let cursor = ram._memory[RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT)-2];
-            let max_char_per_line = SCREEN_WIDTH / (FONT_SIZE * 2);
+            let max_char_per_line = SCREEN_WIDTH / (FONT_SIZE);
             let x = Math.trunc(cursor % max_char_per_line);
             let y = Math.trunc(cursor / max_char_per_line);
             writeCharacter(x, y, String.fromCharCode(registers.d));
@@ -358,6 +359,7 @@
 
         function run_recur()
         {
+            runSpeed = 250 - document.getElementById("runSpeedController").value;
             setTimeout(() => {
                 stepExec();
                 if (!stopRun)

@@ -42,10 +42,14 @@ function    parseArg(arg)
     A = A + D # now address of char at offset
     D = *A     # copy char to D register
 `);
-    } else {
+    } else if (isNumeric(arg)) {
         // basic data writing
         return (`A = ${arg}
     D = A
+`);
+    } else { // arg is a pointer to a value (a variable)
+        return (`A = ${arg}
+    D = *A
 `);
     }
 }

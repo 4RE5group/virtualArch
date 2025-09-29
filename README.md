@@ -98,3 +98,7 @@ C Language improvements
 - [ ] Handle multi-arg functions call + returns
 - [ ] Add for and while loops
 - [ ] Add ability to do logic & arithmetic operations
+
+
+Known Bugs
+- Can't add labels with a comment on the same line
