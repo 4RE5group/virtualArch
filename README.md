@@ -11,13 +11,13 @@ These op codes are 16 bits of length and are formatted as follow:
     | ci | - | - | * | - | u | op1 | op0 | zx | sw | a | d | *a | lt | eq | gt |
 
 
-### :book: Assembly manual
-#### Summary
+## :book: Assembly manual
+### Summary
 1. [Registers](#registers)
 2. [Conditions](#conditions)
 
 
-#### Registers
+### Registers
 Operations can be processed using 3 main registers: `A`, `D` and `*A` (which is used as a pointer for ram access)
 
 > A is the main one; it is the only one that can be defined directly.
@@ -39,7 +39,7 @@ D = *A   # reads the memory at offset 1000
 ```
 
 
-#### Conditions
+### Conditions
 > Any condition can be placed after an operation using the `;` character.
 
 > :warning: NOTE: conditial jumps are conditioned by the sign of the operation before the `;` character 
@@ -65,11 +65,11 @@ A;JMP
 will jump to line `16` (pc starts at line 0 but line 1 in editor).
 
 
-### :book: C manual
-#### Summary
+## :book: C manual
+### Summary
 1. [Builtin Functions](#builtin-functions)
 
-#### Builtin Functions
+### Builtin Functions
 virtualArch C compiler can handle several builtin functions.
 Here are the full list with examples.
 
