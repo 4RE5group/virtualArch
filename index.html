@@ -183,6 +183,7 @@
             // handle define flags
             var definitions = new Map();
             let j = 0;
+            let mem_pos = PROGRAM_TEXT_MEMSTART; // start offset of program TEXT memory
             lines.forEach(line => {
                 line = line.trim();
                 if (line.startsWith("#"))
@@ -202,10 +203,49 @@
                         definitions.set(elements[0].trim(), elements[1].trim());
                     }
                 }
-                else if (line.endsWith(":") && !line.includes("#"))
+                else if (line.trim().endsWith(":")) // labels
                 {
-                    line = line.replaceAll(":", "").trim();
-                    definitions.set(line, j.toString());
+                    line = line.split(":")[0].trim();
+                    if (line == "TEXT") // text section
+                    {
+                        let k = j+1;
+                        while (lines[k].startsWith(" ") || lines[k].startsWith("\t"))
+                        {
+                            let start_offset = -1;
+                            lines[k] = lines[k].trim();
+                            while(lines[k].includes("  "))
+                                lines[k] = lines[k].replaceAll("  ", " ");
+                            let elements = [
+                                ...lines[k].split(" ").slice(0, 1), 
+                                lines[k].split(" ").slice(1).join(' ').trim() // merge the rest into a single string
+                            ];
+                            // string type
+                            if (elements[1].startsWith('"') && elements[1].endsWith('"'))
+                            {
+                                start_offset = mem_pos;
+                                for(let _ = 1; _ < elements[1].length-1; _++)
+                                {
+                                    ram._memory[mem_pos++] = elements[1].charCodeAt(_);
+                                }
+                                ram._memory[mem_pos++] = 0;
+                                console.log("registered a string at offset "+(mem_pos-elements[1].length+1));
+                            } else if (isNumeric(elements[1])) {
+                                start_offset = mem_pos;
+                                ram._memory[mem_pos++] = Number(elements[1]);
+                                console.log("registered a number at offset "+mem_pos);
+                            } else {
+                                console.error("error: invalid TEXT definition type: "+elements[1]);
+                                return;
+                            }
+                            definitions.set(elements[0], start_offset.toString());
+                            lines[k] = "#"+lines[k];
+                            k++;
+                        }
+                    }
+                    else
+                    {
+                        definitions.set(line, j.toString());
+                    }
                     lines[j] = "#"+lines[j]; // comment line to skip it when running
                 }
                 j++;
