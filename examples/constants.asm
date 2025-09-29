@@ -2,9 +2,6 @@ TEXT:
     HELLO_WORLD_TEXT "Hello World!"
     i 0
 
-# DEFINE CURSOR 984574
-# DEFINE WRITE  984575
-
 # save counter
 A = i
 *A = 0-1

@@ -2,7 +2,6 @@
     4re5 group, all rights reserved.
 */
 
-
 // definitions
 const RAMSIZE = 1048576; // ram size in bytes
 const PROGRAM_TEXT_MEMSTART = 1000; // start offset of the TEXT memory
@@ -66,16 +65,6 @@ const registers = {
     get d() { return this._d; },
     set d(v) { this._d = v; },
 
-    // e
-    _e: 0x0000000000000000,
-    get e() { return this._e; },
-    set e(v) { this._e = v; },
-
-    // f
-    _f: 0x0000000000000000,
-    get f() { return this._f; },
-    set f(v) { this._f = v; },
-
     // *a (custom register)
     get a_ptr() {
         return (ram.read);
@@ -120,11 +109,7 @@ function addMemoryMapping(name, request_mode, start_offset, stop_offset, callbac
 
 // opcode format:
 // 16 bits
-// ci
-// ci  e  f * - u op1 op0 zx sw a d *a lt eq gt
-//
-// l2 == 0    => D     l2 == 1   => E    (left term)
-// r2 == 0    => A     r2 == 1   => F    (right term)
+// ci  -  - * - u op1 op0 zx sw a d *a lt eq gt
 function    asm_exec_opcode(opcode)
 {
     if (typeof(opcode) != 'number')

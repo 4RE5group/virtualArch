@@ -62,6 +62,7 @@
         
     </div>
     <script src="src/main.js"></script>
+    <script src="./src/c_compiler.js"></script>
     <script src="./src/terminal.js"></script>
     <script src="./src/utils.js"></script>
     <script>        
@@ -182,6 +183,13 @@
             var lines = document.querySelector(".code-editor").value.split("\n");
             // handle define flags
             var definitions = new Map();
+            
+            // set global definitions
+            definitions.set("WRITE", RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT)-1);
+            definitions.set("CURSOR", RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT)-2);
+            definitions.set("KEYPRESS", RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT)-3);
+            definitions.set("SCREEN_BUFFER", RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT));
+            
             let j = 0;
             let mem_pos = PROGRAM_TEXT_MEMSTART; // start offset of program TEXT memory
             lines.forEach(line => {
