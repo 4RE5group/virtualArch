@@ -30,14 +30,10 @@ function    parseArg(arg)
     {
         let offset = arg.split("[")[1].trim().split("]")[0].trim();
         let base_address = arg.split("[")[0].trim();
-        if (!isNumeric(offset))
-        {
-            console.error("error: invalid pointer offset: '"+offset+"' '"+arg+"'");
-            return (-1);
-        }
+
         // pointed data writing
         return (`A = ${offset}
-    D = A  # copy offset
+    D = ${isNumeric(offset)?'':'*'}A  # copy offset
     A = ${base_address} # address of char in memory
     A = A + D # now address of char at offset
     D = *A     # copy char to D register
@@ -114,8 +110,8 @@ ${(variables.size > 0)?"TEXT:":""}`;
                 return -1;
             }
 
-            // handle different C operation types
-            if (line.includes("="))
+            // handle different C operation types 
+            if (line.includes("=")) // assignation
             {
                 let varname = line.split("=")[0].trim().replaceAll(';', "");
                 let varvalue= line.split("=")[1].trim().replaceAll(';', "");
@@ -127,53 +123,50 @@ ${(variables.size > 0)?"TEXT:":""}`;
     *A = D
     `;
             }
-            else if (line.includes("++") || line.includes("--"))
+            else if (line.includes("++") || line.includes("--")) // incrementation
             {
                 let varname = line.split(line.includes("++")?"++":"--")[0].trim().replaceAll(';', "");
                 ASM_CODE += 
-`    # ----- inc/dev var -----
+`    # ----- inc/dec var -----
     A = ${varname}  # write to memory
     *A = *A ${line.includes("++")?'+':'-'} 1 # increment
     `;
             }
-            else if (line.includes("(") && line.includes(")") && !line.includes("="))
+            else if (line.includes("(") && line.includes(")") && !line.includes("=")) // function call
             {
                 let funcName = line.split("(")[0].trim();
                 let funcArg = line.split("(")[1].trim().split(")")[0].trim();
-                // if (functions.get(funcName) === undefined)
-                // {
-                //     console.error(`error: could not find function '${funcName}' at ${key}:${i}`);
-                //     return (-1);
-                // }
-                console.log(funcName, funcArg);
                 ASM_CODE += getAsmBuiltinFunc(funcName, funcArg);
             }
             else if (line.endsWith(";"))
             {
-                // Other statements (e.g., return x; or break;)
                 console.log(`Statement: ${line}`);
             }
             else
             {
-                // Unrecognized line (e.g., labels, preprocessor directives, etc.)
                 console.log(`Unrecognized: ${line}`);
             }
 
             filteredLines.push(line); // Add non-empty, non-comment lines to filteredLines
         });
 
-        // Update the function's code with filtered and processed lines
+        // update the code
         functions.set(key, filteredLines.join("\n"));
     });
 
-    console.log(ASM_CODE);
+    return (ASM_CODE);
 }
 
 
-compile(`
+console.log(compile(`
 int main(void)
 {
-    char TEST = 'A';
-    write_char(TEST[0]);
-    set_cursor(1);
-}`);
+    char *TEST = "Hello World!";
+    int i = 0;
+
+    for (i = 0; i < 12; i++)
+    {
+        write_char(TEST[i]);
+        set_cursor(i);
+    }
+}`));
