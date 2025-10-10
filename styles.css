@@ -163,6 +163,17 @@ body {
     gap: 10px;
     padding: 10px;
     background: #2d2d2d;
+
+    label {
+        align-items: center;
+        display: flex;
+    }
+}
+
+.error_view {
+    width: -webkit-fill-available;
+    padding: 20px;
+    background-color: black;
 }
 
 .highlight-line {

@@ -1,14 +1,14 @@
 int main(void)
 {
-    char *HELLO_WORLD_TEXT = "Hello World!";
-    int i = 0;
-    int cursor = 0;
+    char *TEST = "Hello World!";
 
-    while(HELLO_WORLD_TEXT[i] != '\0')
+    set_cursor(0);
+
+    for (int i = 0; i < 12; i++)
     {
-        write_char(HELLO_WORLD_TEXT[i]);
-        cursor++;
-        set_cursor(cursor);
-        i++;
+        write_char(TEST[i]);
+        set_cursor(i);
     }
+    
+    write_char('%');
 }

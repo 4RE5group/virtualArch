@@ -51,7 +51,10 @@
                 <button class="btn" onclick="run()">Run</button>
                 <button class="btn" onclick="stop()">Stop</button>
                 <button class="btn" onclick="reset()">Reset</button>
-                <label style="align-items: center; display: flex;">Speed<input id="runSpeedController" type="range" min="0" max="250" value="0"></label>
+                <label style="align-items: center; display: flex;">Speed &nbsp<input id="runSpeedController" type="range" min="0" max="250" value="0"></label>
+                <label>Language &nbsp<select id="language_selector"><option itemid="0">ASM</option><option itemid="1">C</option></select></label>
+            </div>
+            <div class="error_view">
             </div>
         </div>
 
@@ -181,8 +184,14 @@
         {
             // clear terminal
             console.clear();
+            document.querySelector(".error_view").innerHTML = ""; // reset error view
 
-            var lines = document.querySelector(".code-editor").value.split("\n");
+            // check if language mode is asm or c
+            var code = document.querySelector(".code-editor").value;
+            if (document.getElementById("language_selector").value === "C")
+                code = compile(code); // compile C code to asm
+
+            var lines = code.split("\n");
             // handle define flags
             var definitions = new Map();
             

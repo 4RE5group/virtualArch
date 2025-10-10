@@ -38,7 +38,7 @@ function    parseArg(arg)
     A = A + D # now address of char at offset
     D = *A     # copy char to D register
 `);
-    } else if (isNumeric(arg)) {
+    } else if (isNumeric(arg) || (arg.startsWith("'") && arg.endsWith("'") && arg.length === 3)) {
         // basic data writing
         return (`A = ${arg}
     D = A
@@ -50,26 +50,211 @@ function    parseArg(arg)
     }
 }
 
+function    function_to_asm(key, value)
+{
+    let ASM_CODE = key+":\n"; // add function definition asm code
+    let lines = value.split("\n");
+
+    lines.forEach((line, i) => {
+        line = line.trim();
+        // skip sub functions (will be processed after)
+        if (line.startsWith("%%%") && line.endsWith("%%%"))
+        {
+            ASM_CODE += line;
+            return;
+        }
+        // skip empty lines or comments
+        if (line === "" || line.startsWith("//") || line === "{" || line === "}") {
+            return;
+        }
+        if (!line.endsWith(";"))
+        {
+            console.error(`error: invalid line in ${key}:${i}\n    ${line}`);
+            return -1;
+        }
+        // handle different C operation types 
+        if (line.includes("=")) // assignation
+        {
+            let varname = line.split("=")[0].trim().replaceAll(';', "");
+            let varvalue= line.split("=")[1].trim().replaceAll(';', "");
+            ASM_CODE += 
+`    # ----- write var -----
+    A = ${varvalue} # copy value to D
+    D = A
+    A = ${varname}  # write to memory
+    *A = D
+    `;
+        }
+        else if (line.includes("++") || line.includes("--")) // incrementation
+        {
+            let varname = line.split(line.includes("++")?"++":"--")[0].trim().replaceAll(';', "");
+            ASM_CODE += 
+`    # ----- inc/dec var -----
+    A = ${varname}  # write to memory
+    *A = *A ${line.includes("++")?'+':'-'} 1 # increment
+    `;
+        }
+        else if (line.includes("(") && line.includes(")") && !line.includes("=")) // function call
+        {
+            let funcName = line.split("(")[0].trim();
+            let funcArg = line.split("(")[1].trim().split(")")[0].trim();
+            ASM_CODE += getAsmBuiltinFunc(funcName, funcArg);
+        }
+        else if (line.startsWith("if"))
+        {
+            // handle conditions
+        }
+        else if (line.endsWith(";"))
+        {
+            console.log(`Statement: ${line}`);
+        }
+        else
+        {
+            console.log(`Unrecognized: ${line}`);
+        }
+    });
+    return ASM_CODE;
+}
+
+
 function    compile(code)
 {
-    const functionRegex = /(\w+)\s*\([^)]*\)\s*(?:{([^}]*)}|[^;]+;)/g;
+    const functionHeaderRegex = /(\w+)\s*\([^)]*\)\s*{/g;
+
+    // Control structures to treat as "functions"
+    const controlStructureRegex = /\b(for|if|while|else)\s*(\([^)]*\))?\s*{([^}]*)}/;
 
     const functions = new Map();
     let variables = new Map();
     let match;
 
-    // fetch program functions code
-    while ((match = functionRegex.exec(code)) !== null) {
-        const functionName = match[1];
-        const functionBody = match[2] ? match[2].trim() : '';
-        functions.set(functionName,  functionBody);
+    // handle if-else, while and for loops (treated as regular functions)
+    let controlIndex = 0;
+    while ((match = controlStructureRegex.exec(code)) !== null) {
+        const keyword = match[1].trim();                // e.g., if, while
+        const condition = match[2].trim() || "";        // e.g., (x > 0)
+        let blockBody = match[3].trim();                // content inside { ... }
+
+        const uniqueLabel = `${keyword.toUpperCase()}_${controlIndex++}`;
+
+        if (keyword == "for") {
+            let for_elements = condition.replace('(', '').replace(')', '').split(";");
+            if (for_elements.length != 3) // verify if structure is correct
+            {
+                console.error(`Error: invalid instruction in ${keyword}`);
+                return (-1);
+            }
+            blockBody = `${for_elements[0].trim()};\n${blockBody}`; // add initialisation
+            blockBody += `\n${for_elements[2].trim()};`; // add incrementation
+            blockBody += `\nif(${for_elements[1].trim()})\n{\n\tgoto(${uniqueLabel});\n}\n`; // add condition
+        }
+        functions.set(uniqueLabel, blockBody);
+        code = code.replace(controlStructureRegex, `%%%SUB_FUNC:${uniqueLabel}%%%`);
     }
+    // code = 
+    console.log(code);
+
+
+    // save functions and it's code separatly
+    while ((match = functionHeaderRegex.exec(code)) !== null)
+    {
+        const functionName = match[1];
+        let braceStart = code.indexOf('{', functionHeaderRegex.lastIndex - 1);
+
+        if (braceStart === -1) continue;
+
+        let braceCount = 1;
+        let i = braceStart + 1;
+
+        while (i < code.length && braceCount > 0) { // count braces to find the right closing brace of the function
+            if (code[i] === '{') braceCount++;
+            else if (code[i] === '}') braceCount--;
+            i++;
+        }
+
+        if (braceCount === 0) {
+            let functionBody = code.slice(braceStart + 1, i - 1).trim();
+            let commentedBody = '';
+            let j = 0;
+
+            while (j < functionBody.length)
+            {
+                // detect control structures
+                const controlMatch = functionBody.slice(j).match(/^(for|if|while|else)\b/);
+
+                if (controlMatch) {
+                    const keyword = controlMatch[1];
+                    let start = j + keyword.length;
+
+                    // skip whitespace
+                    while (/\s/.test(functionBody[start])) start++;
+
+                    // if there is a condition (for, if, while)
+                    let condition = '';
+                    if (functionBody[start] === '(')
+                    {
+                        let parens = 1;
+                        start++; // skip the '('
+                        let condStart = start;
+                        while (start < functionBody.length && parens > 0)
+                        {
+                            if (functionBody[start] === '(') parens++;
+                            else if (functionBody[start] === ')') parens--;
+                            start++;
+                        }
+                        condition = functionBody.slice(condStart - 1, start); // include opening '('
+                    }
+
+                    // skip whitespace
+                    while (/\s/.test(functionBody[start])) start++;
+
+                    // now find the code block
+                    if (functionBody[start] === '{')
+                    {
+                        let braces = 1;
+                        start++; // skip the opening {
+                        while (start < functionBody.length && braces > 0)
+                        {
+                            if (functionBody[start] === '{') braces++;
+                            else if (functionBody[start] === '}') braces--;
+                            start++;
+                        }
+
+                        const fullBlock = functionBody.slice(j, start);
+                        commentedBody += `// ${fullBlock.replace(/\n/g, '\n// ')}\n`;
+                        j = start;
+                    }
+                    else
+                    {
+                        // single-line control statement without braces
+                        let stmtEnd = functionBody.indexOf(';', start);
+                        const fullStmt = functionBody.slice(j, stmtEnd + 1);
+                        commentedBody += `// ${fullStmt}\n`;
+                        j = stmtEnd + 1;
+                    }
+                } else {
+                    // copy character by character if no control structure is found
+                    commentedBody += functionBody[j];
+                    j++;
+                }
+            }
+            functions.set(functionName, commentedBody.trim());
+            functionHeaderRegex.lastIndex = i; // continue after this function
+        } else {
+            console.error(`Unmatched braces in function ${functionName}`);
+        }
+    }
+
+
     
+
     // check for variables
     functions.forEach((value, key) => {
-        let lines = value.split(";");
+        let lines = value.split("\n");
         lines.forEach((line, k) => {
             line = line.trim();
+            if (line.startsWith("//") || line === "")
+                return;
             const varRegex = /\b\w+(?:\s*\*\s*|\s+)\s*(\w+)\s*=\s*([^;\n]+)/g;
             while ((match = varRegex.exec(line)) !== null) {
                 const name = match[1]; // variable name
@@ -78,7 +263,7 @@ function    compile(code)
                 lines[k] = "// " + lines[k].trim(); // comment these lines
             }
         });
-        functions.set(key, lines.join(";\n")); // update input
+        functions.set(key, lines.join("\n")); // update input
     });
 
     // generate text section
@@ -90,83 +275,21 @@ ${(variables.size > 0)?"TEXT:":""}`;
 
     ASM_CODE+="\n"; // add new line afte text section
 
+
     // parse code
+    const sub_func_regex = /\%\%\%SUB_FUNC:(FOR|IF|ELSE|WHILE)_(\d+)\%\%\%/g;
     functions.forEach((value, key) => {
-        ASM_CODE += key+":\n"; // add function definition asm code
-        let lines = value.split("\n");
-        let filteredLines = [];
-
-        lines.forEach((line, i) => {
-            line = line.trim();
-
-            // skip empty lines or comments
-            if (line === "" || line.startsWith("//") || line === "{" || line === "}") {
-                return;
-            }
-
-            if (!line.endsWith(";"))
-            {
-                console.error(`error: invalid line in ${key}:${i}\n    ${line}`);
-                return -1;
-            }
-
-            // handle different C operation types 
-            if (line.includes("=")) // assignation
-            {
-                let varname = line.split("=")[0].trim().replaceAll(';', "");
-                let varvalue= line.split("=")[1].trim().replaceAll(';', "");
-                ASM_CODE += 
-`    # ----- write var -----
-    A = ${varvalue} # copy value to D
-    D = A
-    A = ${varname}  # write to memory
-    *A = D
-    `;
-            }
-            else if (line.includes("++") || line.includes("--")) // incrementation
-            {
-                let varname = line.split(line.includes("++")?"++":"--")[0].trim().replaceAll(';', "");
-                ASM_CODE += 
-`    # ----- inc/dec var -----
-    A = ${varname}  # write to memory
-    *A = *A ${line.includes("++")?'+':'-'} 1 # increment
-    `;
-            }
-            else if (line.includes("(") && line.includes(")") && !line.includes("=")) // function call
-            {
-                let funcName = line.split("(")[0].trim();
-                let funcArg = line.split("(")[1].trim().split(")")[0].trim();
-                ASM_CODE += getAsmBuiltinFunc(funcName, funcArg);
-            }
-            else if (line.endsWith(";"))
-            {
-                console.log(`Statement: ${line}`);
-            }
-            else
-            {
-                console.log(`Unrecognized: ${line}`);
-            }
-
-            filteredLines.push(line); // Add non-empty, non-comment lines to filteredLines
+        if (/(FOR|IF|ELSE|WHILE)_[0-9]*/.test(key)) // skip sub functions (will be processed after)
+            return;
+        let func = function_to_asm(key, value);
+        func = func.replace(sub_func_regex, (match, type, number) => {
+            const token = `${type}_${number}`;
+            const replacement = `${function_to_asm(token, functions.get(token))}\n#--------------------`;
+            return replacement;
         });
-
-        // update the code
-        functions.set(key, filteredLines.join("\n"));
+        console.log(value);
+        ASM_CODE += func+"\n";
     });
 
     return (ASM_CODE);
 }
-
-
-console.log(compile(`
-int main(void)
-{
-    char *TEST = "Hello World!";
-    int i = 0;
-
-    for (i = 0; i < 12; i++)
-    {
-        write_char(TEST[i]);
-        set_cursor(i);
-    }
-}`));

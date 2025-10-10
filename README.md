@@ -84,6 +84,7 @@ Here are the full list with examples.
 ## TODO list
 - [x] Add memory mapping for a simple graphic interface
 - [x] Add memory mapping for keyboard input
+- [ ] Add other periferals like sound card and mouse
 - [ ] Make the js code a whole package
 - [ ] Create a simple game on this architecture
 
@@ -102,3 +103,4 @@ C Language improvements
 
 Known Bugs
 - Can't add labels with a comment on the same line
+- Can't call a function with a quoted char as arg in C code
