@@ -241,6 +241,13 @@
             var definitions = new Map();
             
             // set global definitions
+            // tmp ram buffers (used by the virtualArch C compiler)
+            definitions.set("TMP0", RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT)-10);
+            definitions.set("TMP1", RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT)-9);
+            definitions.set("TMP2", RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT)-8);
+            definitions.set("TMP3", RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT)-7);
+            definitions.set("TMP4", RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT)-6);
+
             definitions.set("WRITE", RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT)-1);
             definitions.set("CURSOR", RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT)-2);
             definitions.set("KEYPRESS", RAMSIZE-(SCREEN_WIDTH*SCREEN_HEIGHT)-3);

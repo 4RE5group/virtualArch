@@ -100,10 +100,11 @@ C Language improvements
 - [ ] Handle multi-arg functions call + returns
 - [ ] Add for and while loops
 - [ ] Add if else conditions
-- [ ] Add ability to do logic & arithmetic operations
+- [ ] Add ability to do chained conditions
 
 
 Known Bugs
 - [ ] Can't add labels with a comment on the same line
 - [ ] Can't call a function with a quoted char as arg in C code
 - [x] Writing 'if (' or 'for' inside of the code editor is causing a crash [fixed here](https://github.com/4RE5group/virtualArch/commit/30b30e21a673cb056dc449a8d7bb0adee8759752)
+- [ ] Some C instructions are declared as errors/unrecognized. We need to fix C instruction types recognition

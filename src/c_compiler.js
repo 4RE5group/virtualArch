@@ -6,6 +6,10 @@ function    getAsmBuiltinFunc(funcName, arg)
 {
     switch(funcName)
     {
+        case 'asm': // direct asm execution
+            return (`   ${arg.replace(/^\"+|\"+$/g, '')}\n`);
+        case 'label': // direct asm label writing
+            return (`${arg}:\n`);
         case 'write_char':
             return (
 `    # ----- write char -----
@@ -29,6 +33,8 @@ function    getAsmBuiltinFunc(funcName, arg)
     }
 }
 
+// this function generates an set of asm instructions to put the given argument into the D register.
+// arg is a C string, char, pointer or any other C types (should be handled).
 function    parseArg(arg)
 {
     arg = arg.trim();
@@ -63,6 +69,7 @@ function    function_to_asm(key, value)
         ASM_CODE = key+":\n"; // add function definition asm code
 
     let lines = value.split("\n");
+    const var_assignation_regex = /^\s*[a-zA-Z0-9_-]*\s*\=\s*().*\s*\;$/g;
 
     lines.forEach((line, i) => {
         line = line.trim();
@@ -78,12 +85,13 @@ function    function_to_asm(key, value)
         }
         if (!line.endsWith(";") && !line.startsWith("if") && !line.startsWith("else"))
         {
-            console.error(`error: invalid line in ${key}:${i}\n    ${line}`);
+            console.error(`error: invalid line in ${key} at line ${i}\n    => ${line}`);
             return (-1);
         }
         // handle different C operation types 
-        if (line.includes("=")) // assignation
+        if (var_assignation_regex.test(line)) // assignation
         {
+            console.log(line+" is a var assign");
             let varname = line.split("=")[0].trim().replaceAll(';', "");
             let varvalue= line.split("=")[1].trim().replaceAll(';', "");
             ASM_CODE += 
@@ -94,7 +102,7 @@ function    function_to_asm(key, value)
     *A = D
     `;
         }
-        else if (line.includes("++") || line.includes("--")) // incrementation
+        else if (line.endsWith("++;") || line.endsWith("--;")) // incrementation
         {
             let varname = line.split(line.includes("++")?"++":"--")[0].trim().replaceAll(';', "");
             ASM_CODE += 
@@ -103,11 +111,7 @@ function    function_to_asm(key, value)
     *A = *A ${line.includes("++")?'+':'-'} 1 # increment
     `;
         }
-        else if (line.startsWith("if"))
-        {
-            console.log("if detected");
-        }
-        else if (line.includes("(") && line.includes(")") && !line.includes("=")) // function call
+        else if (line.includes("(") && line.includes(")")) // function call
         {
             let funcName = line.split("(")[0].trim();
             let funcArg = line.split("(")[1].trim().split(")")[0].trim();
@@ -115,17 +119,66 @@ function    function_to_asm(key, value)
         }
         else if (line.endsWith(";"))
         {
-            console.log(`Statement: ${line}`);
+            console.error(`Unknown statement: ${line}`);
         }
         else
         {
-            console.log(`Unrecognized: ${line}`);
+            console.error(`Unrecognized: ${line}`);
         }
     });
 
     if (key.startsWith("IF") || key.startsWith("ELSE")) // add label after code (needed for jumps)
-        ASM_CODE = key+":\n";
+        ASM_CODE += key+":\n";
 
+    return ASM_CODE;
+}
+
+// this function generates asm 
+function    generateIfAsm(condition, if_label)
+{
+    let ASM_CODE = "# ----- start of for's reversed if condition -----\n";
+    const conditionRegex = /^\s*(\w*)\s*(>|<|<=|>=|==|!=)\s*(\w*)\s*$/;
+    if (conditionRegex.test(condition))
+    {
+        const match = condition.match(conditionRegex);
+        const left_term = match[1];
+        let operand = match[2];
+        const right_term = match[3];
+        
+        // get opposite of operand
+        operand = ((operand) => {
+            switch(operand)
+            {
+                case "==": return "JNE"; // !=
+                case "!=": return "JEQ"; // ==
+
+                case "<": return "JGE";  // >=
+                case ">": return "JLE";  // <=
+
+                case "<=": return "JGT";  // >
+                case ">=": return "JLT";  // <
+            }
+        })(operand);
+
+        ASM_CODE += parseArg(left_term);                // add left term to D register
+        ASM_CODE += "A = TMP0\n*A = D\n";               // save D to TMP0 buffer
+
+        ASM_CODE += parseArg(right_term);               // add right term to D register
+        ASM_CODE += "A = TMP0\nD = *A - D\n";           // calculate the difference between left and right term (to make the condition compare left term and 0)
+
+        ASM_CODE += `A = ${if_label}\nD; ${operand}\n`; // generate the jump condition to the end of the if
+    } else {
+        console.error("Error: invalid condition: "+condition);
+    }
+    // simple example if (i == 12) asm code
+    // A = i
+    // D = *A # left term
+
+    // A = 12 # right term
+    // D = D - A
+    
+    // A = LABEL # jump
+    // D; JEQ
     return ASM_CODE;
 }
 
@@ -151,16 +204,35 @@ function    compile(code)
 
         const uniqueLabel = `${keyword.toUpperCase()}_${controlIndex++}`;
 
-        if (keyword == "for") {
+        if (keyword == "for")
+        {
             let for_elements = condition.replace('(', '').replace(')', '').split(";");
             if (for_elements.length != 3) // verify if structure is correct
             {
                 console.error(`Error: invalid instruction in ${keyword}`);
                 return (-1);
             }
-            blockBody = `${for_elements[0].trim()};\n${blockBody}`; // add initialisation
-            blockBody += `\n${for_elements[2].trim()};`; // add incrementation
-            blockBody += `\nif(${for_elements[1].trim()})\n{\n\tgoto(${uniqueLabel});\n}\n`; // add condition
+            let for_initalisation = for_elements[0].trim();
+            let for_condition = for_elements[1].trim();
+            let for_incrementation = for_elements[2].trim();
+            let if_sub_func_label = `IF_${controlIndex++}`;
+            let if_asm_code = "";
+
+            // this creates a if sub function that skip its content if the opposite of the condition is true
+            generateIfAsm(for_condition, if_sub_func_label).split("\n")
+            .forEach((line) => {
+                if_asm_code += `asm("${line.trim()}");\n`;
+            });
+
+            // parse for sub function
+            blockBody = `
+${for_initalisation};
+${if_asm_code}
+    ${blockBody}
+    ${for_incrementation};
+    goto(${uniqueLabel});
+label(${if_sub_func_label});
+`;
         }
         functions.set(uniqueLabel, blockBody);
         code = code.replace(controlStructureRegex, `%%%SUB_FUNC:${uniqueLabel}%%%`);
@@ -299,14 +371,19 @@ ${(variables.size > 0)?"TEXT:":""}`;
         if (/(FOR|IF|ELSE|WHILE)_[0-9]*/.test(key)) // skip sub functions (will be processed after)
             return;
         let func = function_to_asm(key, value);
-        func = func.replace(sub_func_regex, (match, type, number) => {
-            const token = `${type}_${number}`;
-            const replacement = `${function_to_asm(token, functions.get(token))}\n#--------------------\n`;
-            return replacement;
-        });
+        while (sub_func_regex.test(func))
+        {
+            func = func.replace(sub_func_regex, (match, type, number) => {
+                const token = `${type}_${number}`;
+                const replacement = `${function_to_asm(token, functions.get(token))}\n`;
+                return replacement;
+            });
+            console.log(func);
+        }
         ASM_CODE += func+"\n";
     });
     console.log("generated ASM code:");
     console.log(ASM_CODE);
+    console.log(functions);
     return (ASM_CODE);
 }
