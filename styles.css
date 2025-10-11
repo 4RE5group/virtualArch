@@ -122,7 +122,7 @@ body {
 .line-numbers {
     overflow: hidden;
     flex-shrink: 0;
-    position: absolute;
+    /* position: absolute; */
     height: 100%;
     left: 0;
     top: 0;
@@ -136,10 +136,16 @@ body {
     user-select: none;
 }
 
-.code-editor {
+.code-editor-div {
+    display: flex;
+    flex-direction: row;
     width: 100%;
+}
+
+.code-editor {
+    width: 50%;
     height: 400px;
-    padding: 10px 0 10px 50px;
+    padding: 10px 0 10px 10px;
     background: #1e1e1e;
     color: #e0e0e0;
     border: none;

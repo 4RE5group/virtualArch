@@ -43,8 +43,13 @@
         </div>
 
         <div class="code-editor-container">
-            <div class="line-numbers"></div>
-            <textarea class="code-editor" autocomplete="on" oninput="editRom()" name="asmcode" spellcheck="false"></textarea>
+            <div class="code-editor-div">
+                <div class="line-numbers" id="asm_line_numbers"></div>
+                <textarea class="code-editor" id="asm_code_editor" autocomplete="on" oninput="editRom()" name="asmcode" spellcheck="false"></textarea>
+                <div class="line-numbers" id="c_line_numbers"></div>
+                <textarea class="code-editor" id="c_code_editor"   autocomplete="on" oninput="editRom()" name="ccode" spellcheck="false"></textarea>
+            </div>
+            
             <div class="pc-display">PC: <span id="pc_num">0</span></div>
             <div class="controls">
                 <button class="btn" onclick="stepExec()">Step</button>
@@ -52,14 +57,14 @@
                 <button class="btn" onclick="stop()">Stop</button>
                 <button class="btn" onclick="reset()">Reset</button>
                 <label style="align-items: center; display: flex;">Speed &nbsp<input id="runSpeedController" type="range" min="0" max="250" value="0"></label>
-                <label>Language &nbsp<select id="language_selector"><option itemid="0">ASM</option><option itemid="1">C</option></select></label>
+                <label>Language &nbsp<select id="language_selector" onclick="detectLanguage()"><option itemid="0">ASM</option><option itemid="1">C</option></select></label>
             </div>
             <div class="error_view">
             </div>
         </div>
 
 		<div class="terminal">
-			<p>Live terminal</p>
+			<p>Virtual Display</p>
 			<canvas id="terminal_screen" width="640" height="480" onclick="document.getElementById('terminal_input').focus()"></canvas>
             <input id="terminal_input">
 		</div>
@@ -139,12 +144,34 @@
         });
 
         // to make lines follow code input
-        document.querySelector(".code-editor").addEventListener("scroll", () => {
-            document.querySelector(".line-numbers").scrollTop = document.querySelector(".code-editor").scrollTop;
+        document.getElementById("asm_code_editor").addEventListener("scroll", () => {
+            document.getElementById("asm_line_numbers").scrollTop = document.getElementById("asm_code_editor").scrollTop;
+        });
+        document.getElementById("c_code_editor").addEventListener("scroll", () => {
+            document.getElementById("c_line_numbers").scrollTop = document.getElementById("c_code_editor").scrollTop;
         });
 
-        document.querySelector(".line-numbers").style.height = (document.querySelector(".code-editor").clientHeight - 20)+"px";
+        
 
+        document.querySelector(".line-numbers").style.height = (document.querySelector(".code-editor").clientHeight - 20)+"px";
+        detectLanguage();
+
+        function detectLanguage()
+        {
+            // check if language is C or ASM
+            let c_code_editor = document.getElementById("c_code_editor");
+            let asm_code_editor = document.getElementById("asm_code_editor");
+            if (document.getElementById("language_selector").value === "C")
+            {
+                c_code_editor.style.display = "block";
+                asm_code_editor.style.width = "50%";
+            }
+            else
+            {
+                c_code_editor.style.display = "none";
+                asm_code_editor.style.width = "100%";
+            }
+        }
 
         function viewUpdate()
         {
@@ -178,6 +205,8 @@
             document.querySelector(".registers-panel").children.item(2).children.item(1).innerText = formatHex(registers.a_ptr);
             document.querySelector(".registers-panel").children.item(2).children.item(2).innerText = "(" + registers.a_ptr + ")";
 			displayScreen();
+
+            detectLanguage();
 		}
 
         function editRom() 
@@ -187,9 +216,16 @@
             document.querySelector(".error_view").innerHTML = ""; // reset error view
 
             // check if language mode is asm or c
-            var code = document.querySelector(".code-editor").value;
+            var code;
             if (document.getElementById("language_selector").value === "C")
+            {
+                code = document.getElementById("c_code_editor").value;
                 code = compile(code); // compile C code to asm
+                document.getElementById("asm_code_editor").value = code;
+            } else {
+                code = document.getElementById("asm_code_editor").value;
+            }
+
 
             var lines = code.split("\n");
             // handle define flags
@@ -321,11 +357,13 @@
 
         function highlightCurrentLine(pc)
         {
-            const lines = document.querySelector('.code-editor').value.split('\n');
-            const lineNumbers = document.querySelector('.line-numbers');
-            lineNumbers.innerHTML = lines.map((_, i) =>
-                `<div${i+1 === pc ? ' class="highlight-line"' : ''}>${i+1}</div>`
-            ).join('');
+            ["asm_code_editor", "c_code_editor"].forEach(element => {
+                const lines = document.getElementById(element).value.split('\n');
+                const lineNumbers = document.getElementById(element.split("code_editor")[0]+'line_numbers');
+                lineNumbers.innerHTML = lines.map((_, i) =>
+                    `<div${i+1 === pc ? ' class="highlight-line"' : ''}>${i+1}</div>`
+                ).join('');
+            });
         }
 
         function stepExec()
