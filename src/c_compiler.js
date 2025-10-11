@@ -20,6 +20,12 @@ function    getAsmBuiltinFunc(funcName, arg)
     A = CURSOR
     *A = D      # set cursor
 `);
+        case 'goto':
+            return (
+`    # ----- goto -----
+    A = ${arg}
+    A; JMP
+`);
     }
 }
 
@@ -52,7 +58,10 @@ function    parseArg(arg)
 
 function    function_to_asm(key, value)
 {
-    let ASM_CODE = key+":\n"; // add function definition asm code
+    let ASM_CODE = "";
+    if (!key.startsWith("IF") && !key.startsWith("ELSE")) // if and else sub functions need to have their labels after their code (for jumps)
+        ASM_CODE = key+":\n"; // add function definition asm code
+
     let lines = value.split("\n");
 
     lines.forEach((line, i) => {
@@ -67,10 +76,10 @@ function    function_to_asm(key, value)
         if (line === "" || line.startsWith("//") || line === "{" || line === "}") {
             return;
         }
-        if (!line.endsWith(";"))
+        if (!line.endsWith(";") && !line.startsWith("if") && !line.startsWith("else"))
         {
             console.error(`error: invalid line in ${key}:${i}\n    ${line}`);
-            return -1;
+            return (-1);
         }
         // handle different C operation types 
         if (line.includes("=")) // assignation
@@ -94,15 +103,15 @@ function    function_to_asm(key, value)
     *A = *A ${line.includes("++")?'+':'-'} 1 # increment
     `;
         }
+        else if (line.startsWith("if"))
+        {
+            console.log("if detected");
+        }
         else if (line.includes("(") && line.includes(")") && !line.includes("=")) // function call
         {
             let funcName = line.split("(")[0].trim();
             let funcArg = line.split("(")[1].trim().split(")")[0].trim();
             ASM_CODE += getAsmBuiltinFunc(funcName, funcArg);
-        }
-        else if (line.startsWith("if"))
-        {
-            // handle conditions
         }
         else if (line.endsWith(";"))
         {
@@ -113,6 +122,10 @@ function    function_to_asm(key, value)
             console.log(`Unrecognized: ${line}`);
         }
     });
+
+    if (key.startsWith("IF") || key.startsWith("ELSE")) // add label after code (needed for jumps)
+        ASM_CODE = key+":\n";
+
     return ASM_CODE;
 }
 
@@ -128,7 +141,7 @@ function    compile(code)
     let variables = new Map();
     let match;
 
-    // handle if-else, while and for loops (treated as regular functions)
+    // handle if-else, while and for loops (treated as sub functions)
     let controlIndex = 0;
     while ((match = controlStructureRegex.exec(code)) !== null) {
         const keyword = match[1].trim();                // e.g., if, while
@@ -284,12 +297,12 @@ ${(variables.size > 0)?"TEXT:":""}`;
         let func = function_to_asm(key, value);
         func = func.replace(sub_func_regex, (match, type, number) => {
             const token = `${type}_${number}`;
-            const replacement = `${function_to_asm(token, functions.get(token))}\n#--------------------`;
+            const replacement = `${function_to_asm(token, functions.get(token))}\n#--------------------\n`;
             return replacement;
         });
-        console.log(value);
         ASM_CODE += func+"\n";
     });
-
+    console.log("generated ASM code:");
+    console.log(ASM_CODE);
     return (ASM_CODE);
 }

@@ -87,6 +87,7 @@ Here are the full list with examples.
 - [ ] Add other periferals like sound card and mouse
 - [ ] Make the js code a whole package
 - [ ] Create a simple game on this architecture
+- [ ] Handle if user does not have javascript allowed
 
 Asm Language improvements
 - [x] Add DEFINE for preprocessing data
@@ -104,3 +105,4 @@ C Language improvements
 Known Bugs
 - Can't add labels with a comment on the same line
 - Can't call a function with a quoted char as arg in C code
+- Writing 'if (' inside of the code editor is causing a crash
