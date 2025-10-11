@@ -143,7 +143,8 @@ function    compile(code)
 
     // handle if-else, while and for loops (treated as sub functions)
     let controlIndex = 0;
-    while ((match = controlStructureRegex.exec(code)) !== null) {
+    while ((match = controlStructureRegex.exec(code)) !== null)
+    {
         const keyword = match[1].trim();                // e.g., if, while
         const condition = match[2].trim() || "";        // e.g., (x > 0)
         let blockBody = match[3].trim();                // content inside { ... }
@@ -164,9 +165,6 @@ function    compile(code)
         functions.set(uniqueLabel, blockBody);
         code = code.replace(controlStructureRegex, `%%%SUB_FUNC:${uniqueLabel}%%%`);
     }
-    // code = 
-    console.log(code);
-
 
     // save functions and it's code separatly
     while ((match = functionHeaderRegex.exec(code)) !== null)
@@ -241,6 +239,12 @@ function    compile(code)
                     {
                         // single-line control statement without braces
                         let stmtEnd = functionBody.indexOf(';', start);
+                        if (stmtEnd == -1)
+                        {
+                            console.error("Error: invalid statement detected (may be caused by wront syntax of a for/if/while)");
+                            j++;
+                            continue;
+                        }
                         const fullStmt = functionBody.slice(j, stmtEnd + 1);
                         commentedBody += `// ${fullStmt}\n`;
                         j = stmtEnd + 1;

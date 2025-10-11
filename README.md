@@ -96,13 +96,14 @@ Asm Language improvements
 - [x] Add a text section that puts constants into memory
 
 C Language improvements
-- [ ] Handle any kind of C variables
+- [ ] Handle any kind of C variables and C variable definition (e.g. `char *test = "Hello World"` abd `char test[12] = "Hello World!"` should do the same thing)
 - [ ] Handle multi-arg functions call + returns
 - [ ] Add for and while loops
+- [ ] Add if else conditions
 - [ ] Add ability to do logic & arithmetic operations
 
 
 Known Bugs
 - Can't add labels with a comment on the same line
 - Can't call a function with a quoted char as arg in C code
-- Writing 'if (' inside of the code editor is causing a crash
+- Writing 'if (' or 'for' inside of the code editor is causing a crash

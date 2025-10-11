@@ -153,7 +153,10 @@
 
         
 
-        document.querySelector(".line-numbers").style.height = (document.querySelector(".code-editor").clientHeight - 20)+"px";
+        document.querySelectorAll(".line-numbers").forEach(elem => {
+            elem.style.height = (document.querySelector(".code-editor").clientHeight - 20)+"px";
+        })
+        highlightCurrentLine();
         detectLanguage();
 
         function detectLanguage()
@@ -161,15 +164,21 @@
             // check if language is C or ASM
             let c_code_editor = document.getElementById("c_code_editor");
             let asm_code_editor = document.getElementById("asm_code_editor");
+            let asm_code_lines_numbers = document.getElementById("asm_line_numbers");
+            let c_code_lines_numbers = document.getElementById("c_line_numbers");
             if (document.getElementById("language_selector").value === "C")
             {
                 c_code_editor.style.display = "block";
+                c_code_lines_numbers.style.display = "block";
                 asm_code_editor.style.width = "50%";
+                asm_code_editor.disabled = true;
             }
             else
             {
+                c_code_lines_numbers.style.display = "none";
                 c_code_editor.style.display = "none";
                 asm_code_editor.style.width = "100%";
+                asm_code_editor.disabled = false;
             }
         }
 
