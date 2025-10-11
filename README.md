@@ -108,3 +108,6 @@ Known Bugs
 - [ ] Can't call a function with a quoted char as arg in C code
 - [x] Writing 'if (' or 'for' inside of the code editor is causing a crash [fixed here](https://github.com/4RE5group/virtualArch/commit/30b30e21a673cb056dc449a8d7bb0adee8759752)
 - [ ] Some C instructions are declared as errors/unrecognized. We need to fix C instruction types recognition
+- [ ] When running C code, the line highlight isn't right
+- [ ] `for (int i = j; i < 5; i++)` returns an error. Need to define i to 0 in `TEXT` section then define it before the for
+- [ ] Cant stack 2 `for`. The compiler comments the second for

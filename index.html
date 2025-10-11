@@ -230,7 +230,10 @@
             {
                 code = document.getElementById("c_code_editor").value;
                 code = compile(code); // compile C code to asm
-                document.getElementById("asm_code_editor").value = code;
+                if (code != -1)
+                    document.getElementById("asm_code_editor").value = code;
+                else
+                    return; // an error occured
             } else {
                 code = document.getElementById("asm_code_editor").value;
             }

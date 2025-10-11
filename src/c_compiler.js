@@ -137,7 +137,7 @@ function    function_to_asm(key, value)
 function    generateIfAsm(condition, if_label)
 {
     let ASM_CODE = "# ----- start of for's reversed if condition -----\n";
-    const conditionRegex = /^\s*(\w*)\s*(>|<|<=|>=|==|!=)\s*(\w*)\s*$/;
+    const conditionRegex = /^\s*(.*)\s*(>|<|<=|>=|==|!=)\s*(.*)\s*$/;
     if (conditionRegex.test(condition))
     {
         const match = condition.match(conditionRegex);
