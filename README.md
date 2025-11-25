@@ -80,9 +80,6 @@ Here are the full list with examples.
     - sets the screen cursor position to the value of `pos`
     - e.g. `set_cursor(5);` will set the cursor to position **5**
 
-### Demo
-<img src="./demo_c.gif">
-
 
 
 ## TODO list
