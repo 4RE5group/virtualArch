@@ -88,7 +88,10 @@ Here are the full list with examples.
 - [ ] Add other periferals like sound card and mouse
 - [ ] Make the js code a whole package
 - [ ] Create a simple game on this architecture
-- [ ] Handle if user does not have javascript allowed
+- [x] Handle if user does not have javascript allowed
+- [x] Add exemples
+- [x] Enhance the display
+- [ ] Make the emulator faster and the UI responsive
 
 Asm Language improvements
 - [x] Add DEFINE for preprocessing data
@@ -102,6 +105,7 @@ C Language improvements
 - [ ] Add for and while loops
 - [ ] Add if else conditions
 - [ ] Add ability to do chained conditions
+- [ ] Do lexical analyser
 
 
 Known Bugs
@@ -112,3 +116,4 @@ Known Bugs
 - [ ] When running C code, the line highlight isn't right
 - [ ] `for (int i = j; i < 5; i++)` returns an error. Need to define i to 0 in `TEXT` section then define it before the for
 - [ ] Cant stack 2 `for`. The compiler comments the second for
+- [ ] `for` loops does not initialize var to the given value (only placed in `TEXT`)

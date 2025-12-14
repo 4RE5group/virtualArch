@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Hardware Design SandBox</title>
+<style>
+:root{--bg:#0b0b12;--panel:#0f1020;--accent:#7c4dff;--muted:#9aa0b4;--card:#12121b;--glass: rgba(255,255,255,0.03);}*{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,Arial}html,body,#app{height:100%;margin:0}body{background:linear-gradient(180deg,#05050a 0%, #0b0b12 100%);color:#e6e6ff}#app{display:grid;grid-template-columns:300px 1fr;gap:12px;padding:16px} .sidebar{background:linear-gradient(180deg, rgba(124,77,255,0.04), transparent);border:1px solid rgba(124,77,255,0.06);padding:12px;border-radius:12px} .h1{font-size:14px;color:var(--accent);font-weight:700;margin:6px 0 12px} .palette{display:flex;flex-direction:column;gap:10px;max-height:60vh;overflow:auto;padding-right:6px} .template{background:var(--card);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);cursor:grab;display:flex;justify-content:space-between;align-items:center} .template:active{cursor:grabbing} .template .meta{font-size:12px;color:var(--muted)} .workspace-wrap{position:relative;border-radius:12px;overflow:hidden} .workspace{background:linear-gradient(90deg, rgba(124,77,255,0.02), transparent 40%);height:calc(100vh - 64px);border-radius:12px;border:1px solid rgba(255,255,255,0.03);position:relative} .grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,0.01) 1px, transparent 1px),linear-gradient(90deg, rgba(255,255,255,0.01) 1px, transparent 1px);background-size:40px 40px,40px 40px;pointer-events:none} .block{position:absolute;min-width:110px;background:linear-gradient(180deg, rgba(124,77,255,0.06), rgba(124,77,255,0.02));border:1px solid rgba(124,77,255,0.14);padding:10px;border-radius:10px;color:#fff;box-shadow:0 6px 18px rgba(0,0,0,0.6)} .block .title{font-weight:700;display:flex;justify-content:space-between;align-items:center} .block .title .name{font-size:13px} .block .ports{display:flex;justify-content:center;gap:6px;margin-top:8px;position:relative} .ports .inputs,.ports .outputs{display:flex;flex-direction:row;gap:8px;justify-content:center} .port{width:12px;height:12px;border-radius:50%;background:var(--glass);border:2px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;cursor:pointer;position:absolute} .port.out{background:linear-gradient(90deg,var(--accent), #bf9bff);top:-10px;} .port.in{background:transparent;border:2px solid rgba(255,255,255,0.06);bottom:-10px;} .small{font-size:11px;color:var(--muted)} .info-btn{background:transparent;border:0;color:var(--muted);cursor:pointer} svg.connections{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none} .connection-path{stroke:var(--accent);stroke-width:3;fill:none;filter:drop-shadow(0 6px 10px rgba(124,77,255,0.08))} .temp-line{stroke:rgba(124,77,255,0.6);stroke-width:2;stroke-dasharray:6 6;fill:none} .details{position:absolute;right:10px;bottom:10px;background:#0d0d15;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);font-size:13px;color:var(--muted)} .modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#0c0c14;border:1px solid rgba(124,77,255,0.12);padding:14px;border-radius:10px;z-index:40;min-width:320px} .modal h3{margin:0 0 8px;color:var(--accent)} .modal label{display:block;font-size:13px;margin-top:8px;color:var(--muted)} .modal input[type="text"], .modal input[type="number"]{width:100%;padding:8px;margin-top:6px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:#fff} .modal .row{display:flex;gap:8px;margin-top:10px} .btn{padding:8px 10px;border-radius:8px;border:0;cursor:pointer;background:linear-gradient(90deg,var(--accent),#a38bff);color:#0b0b12;font-weight:700} .btn.ghost{background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.04)} .footer{position:absolute;left:12px;bottom:12px;color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="sidebar">
+    <div class="h1">Block Palette</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <button id="btnNewBlock" class="btn">Create Custom Block</button>
+      <button id="btnSaveFromWorkspace" class="btn ghost">Save From Workspace</button>
+    </div>
+    <div class="palette" id="palette"></div>
+    <div style="height:12px"></div>
+    <div class="small">Drag a block into the workspace. Click an output (top), then an input (bottom) to connect. Double-click a block to see its truth table.<br>Use the special <strong>PIN-IN</strong> and <strong>PIN-OUT</strong> blocks to define external ports for custom blocks.</div>
+  </div>
+
+  <div class="workspace-wrap">
+    <div class="workspace" id="workspace">
+      <div class="grid"></div>
+      <svg class="connections" id="svg"></svg>
+      <div class="footer">4re5 group, all rights reserved - virtualArch Hardware Design SandBox</div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal container -->
+<div id="modalRoot"></div>
+
+<script>
+// built-in templates + pin blocks
+const templates = [
+  {name:'AND', size: {w:140,h:64}, inputs:2, outputs:1, truth: ['00→0','01→0','10→0','11→1'], kind:'primitive'},
+  {name:'OR', size: {w:140,h:64}, inputs:2, outputs:1, truth: ['00→0','01→1','10→1','11→1'], kind:'primitive'},
+  {name:'NOT', size: {w:110,h:56}, inputs:1, outputs:1, truth: ['0→1','1→0'], kind:'primitive'},
+  {name:'PIN-IN', size:{w:90,h:48}, inputs:0, outputs:1, truth:[], kind:'pin-in'},
+  {name:'PIN-OUT', size:{w:90,h:48}, inputs:1, outputs:0, truth:[], kind:'pin-out'}
+];
+
+const palette = document.getElementById('palette');
+const workspace = document.getElementById('workspace');
+const svg = document.getElementById('svg');
+const modalRoot = document.getElementById('modalRoot');
+let instanceCounter = 0;
+let connections = []; // {from:{id,port},to:{id,port},pathEl}
+
+// load custom blocks from cookies
+function loadCustomBlocksFromCookie(){
+  const c = document.cookie.split('; ').find(s=>s.startsWith('custom_blocks='));
+  if(!c) return [];
+  try{
+    const raw = decodeURIComponent(c.split('=')[1]);
+    return JSON.parse(raw);
+  }catch(e){return []}
+}
+function saveCustomBlocksToCookie(list){
+  const v = encodeURIComponent(JSON.stringify(list));
+  document.cookie = `custom_blocks=${v}; path=/; max-age=${60*60*24*365}`;
+}
+let customBlocks = loadCustomBlocksFromCookie();
+
+function addTemplateToPalette(t, isCustom=false){
+  const el = document.createElement('div');
+  el.className='template';
+  el.draggable = true;
+  el.dataset.templateName = t.name;
+  el.dataset.custom = isCustom? '1':'0';
+  el.innerHTML = `<div><div style="font-weight:700">${t.name}</div><div class="meta">${t.inputs} in • ${t.outputs} out</div></div>`;
+  el.addEventListener('dragstart', e=>{ e.dataTransfer.setData('text/template-name', t.name); });
+  el.addEventListener('dblclick', ()=>{ createBlockInstance(t, 40 + 20*instanceCounter, 40 + 20*instanceCounter); });
+  palette.appendChild(el);
+}
+
+// initialize palette
+templates.forEach(t=>addTemplateToPalette(t,false));
+customBlocks.forEach(cb=>addTemplateToPalette(cb,true));
+
+// allow dropping
+workspace.addEventListener('dragover', e=>e.preventDefault());
+workspace.addEventListener('drop', e=>{ e.preventDefault(); const name = e.dataTransfer.getData('text/template-name'); if(!name) return; const rect = workspace.getBoundingClientRect(); const x = e.clientX - rect.left - 60; const y = e.clientY - rect.top - 28; const t = templates.concat(customBlocks).find(tt=>tt.name===name); if(!t) return; createBlockInstance(t,x,y); });
+
+function createBlockInstance(template, x=40, y=40){
+  const id = 'b'+(++instanceCounter);
+  const el = document.createElement('div');
+  el.className='block'; el.dataset.id=id; el.dataset.name=template.name; el.dataset.kind=template.kind||'custom'; el.dataset.inputs=template.inputs; el.dataset.outputs=template.outputs; el.dataset.truth=JSON.stringify(template.truth||[]);
+  el.style.left=x+'px'; el.style.top=y+'px'; el.style.width=template.size.w+'px'; el.style.height=template.size.h+'px';
+  el.innerHTML = `
+    <div class="title"><div class="name">${template.name}</div>
+      <div><button class="info-btn" title="Show truth table">i</button></div>
+    </div>
+  `;
+  workspace.appendChild(el);
+  createPorts(el, template.inputs, template.outputs);
+  makeDraggable(el);
+  el.querySelector('.info-btn').addEventListener('click', ()=>showTruth(el));
+  el.addEventListener('dblclick', ()=>showTruth(el));
+}
+
+function createPorts(blockEl,nIn,nOut){
+  // clear any existing ports
+  blockEl.querySelectorAll('.port')?.forEach(p=>p.remove());
+  // outputs on top
+  for(let j=0;j<nOut;j++){ const p=document.createElement('div'); p.className='port out'; p.dataset.port=j; p.dataset.type='out'; p.title='Output '+j; p.style.left = (10 + j*20) + 'px'; blockEl.appendChild(p); p.addEventListener('mousedown', onPortDown); }
+  // inputs on bottom
+  for(let i=0;i<nIn;i++){ const p=document.createElement('div'); p.className='port in'; p.dataset.port=i; p.dataset.type='in'; p.title='Input '+i; p.style.left = (10 + i*20) + 'px'; blockEl.appendChild(p); p.addEventListener('mouseup', onPortUp); }
+}
+
+// dragging blocks
+function makeDraggable(el){ let ox=0,oy=0,sx=0,sy=0,dragging=false; el.addEventListener('pointerdown', ev=>{ if(ev.target.classList.contains('port')||ev.button!==0) return; dragging=true; el.setPointerCapture(ev.pointerId); const r=el.getBoundingClientRect(); const pr=workspace.getBoundingClientRect(); ox=r.left-pr.left; oy=r.top-pr.top; sx=ev.clientX; sy=ev.clientY; }); window.addEventListener('pointermove', ev=>{ if(!dragging) return; const dx=ev.clientX-sx, dy=ev.clientY-sy; el.style.left = Math.max(0, ox+dx)+'px'; el.style.top = Math.max(0, oy+dy)+'px'; updateAllConnections(); }); window.addEventListener('pointerup', ()=>{ dragging=false; });}
+
+// connections
+let pending = null;
+function onPortDown(e){ e.stopPropagation(); e.preventDefault(); const out = e.currentTarget; const block = out.closest('.block'); const id = block.dataset.id; const index = parseInt(out.dataset.port,10); pending = {fromId:id, fromIndex:index}; const p = createSVG('path'); p.classList.add('temp-line'); svg.appendChild(p); pending.pathTemp = p; window.addEventListener('mousemove', onMouseMoveTemp); window.addEventListener('mouseup', onMouseUpTemp); }
+function onMouseMoveTemp(e){ const rect = workspace.getBoundingClientRect(); const mx = e.clientX - rect.left; const my = e.clientY - rect.top; const from = getPortCenter(pending.fromId,'out',pending.fromIndex); if(!from) return; pending.pathTemp.setAttribute('d', bezierPath(from.x,from.y,mx,my)); }
+function onMouseUpTemp(e){ window.removeEventListener('mousemove', onMouseMoveTemp); window.removeEventListener('mouseup', onMouseUpTemp); const el = document.elementFromPoint(e.clientX,e.clientY); if(el && el.classList && el.classList.contains('port') && el.dataset.type==='in'){ const block = el.closest('.block'); const toId = block.dataset.id; const toIndex = parseInt(el.dataset.port,10); finalizeConnection(pending.fromId,pending.fromIndex,toId,toIndex); } if(pending && pending.pathTemp){ pending.pathTemp.remove(); } pending = null; }
+function onPortUp(e){ if(!pending) return; const inEl = e.currentTarget; const block = inEl.closest('.block'); const toId = block.dataset.id; const toIndex = parseInt(inEl.dataset.port,10); finalizeConnection(pending.fromId,pending.fromIndex,toId,toIndex); if(pending && pending.pathTemp) pending.pathTemp.remove(); pending=null; }
+
+function finalizeConnection(fromId,fromIndex,toId,toIndex){ if(connections.some(c=>c.from.id===fromId && c.from.port===fromIndex && c.to.id===toId && c.to.port===toIndex)) return; const path = createSVG('path'); path.classList.add('connection-path'); svg.appendChild(path); const conn = {from:{id:fromId,port:fromIndex}, to:{id:toId,port:toIndex}, pathEl:path}; connections.push(conn); updateConnectionPath(conn); }
+function updateAllConnections(){ connections.forEach(updateConnectionPath); }
+function updateConnectionPath(conn){ const a = getPortCenter(conn.from.id,'out',conn.from.port); const b = getPortCenter(conn.to.id,'in',conn.to.port); if(!a||!b) return; conn.pathEl.setAttribute('d', bezierPath(a.x,a.y,b.x,b.y)); }
+function getPortCenter(blockId,type,index){ const block = [...workspace.querySelectorAll('.block')].find(b=>b.dataset.id===blockId); if(!block) return null; const selector = type==='out' ? '.port.out' : '.port.in'; const ports = block.querySelectorAll(selector); const port = ports[index]; if(!port) return null; const pr = port.getBoundingClientRect(); const wr = workspace.getBoundingClientRect(); return {x: pr.left - wr.left + pr.width/2, y: pr.top - wr.top + pr.height/2}; }
+function bezierPath(x1,y1,x2,y2){ const dx = Math.abs(x2-x1); const c1x = x1 + dx*0.45; const c2x = x2 - dx*0.45; return `M ${x1} ${y1} C ${c1x} ${y1} ${c2x} ${y2} ${x2} ${y2}`; }
+function createSVG(tag){ return document.createElementNS('http://www.w3.org/2000/svg', tag); }
+
+// truth table modal & block creation from workspace
+const btnNew = document.getElementById('btnNewBlock');
+const btnSaveFromWorkspace = document.getElementById('btnSaveFromWorkspace');
+btnNew.addEventListener('click', ()=>openCreateModal());
+btnSaveFromWorkspace.addEventListener('click', ()=>openCreateModal());
+
+function openCreateModal(){
+  const modal = document.createElement('div'); modal.className='modal'; modal.innerHTML = `
+    <h3>Create Custom Block</h3>
+    <label>Name<input id="cbName" type="text" value="Custom${customBlocks.length+1}"></label>
+    <label>Inputs<input id="cbInputs" type="number" min="1" max="8" value="2"></label>
+    <label>Outputs<input id="cbOutputs" type="number" min="1" max="8" value="1"></label>
+    <div class="row" style="justify-content:flex-end;margin-top:12px"><button id="cancelBtn" class="btn ghost">Cancel</button><button id="buildBtn" class="btn">Build</button></div>
+  `;
+  modalRoot.appendChild(modal);
+  modal.querySelector('#cancelBtn').addEventListener('click', ()=>modal.remove());
+  modal.querySelector('#buildBtn').addEventListener('click', ()=>{
+    const name = modal.querySelector('#cbName').value.trim() || `Custom${customBlocks.length+1}`;
+    const inputs = parseInt(modal.querySelector('#cbInputs').value,10) || 1;
+    const outputs = parseInt(modal.querySelector('#cbOutputs').value,10) || 1;
+    modal.remove(); buildCustomBlockFromWorkspace(name, inputs, outputs);
+  });
+}
+
+function buildCustomBlockFromWorkspace(name, inputsCount, outputsCount){
+  // ensure there are pin blocks; auto-add missing ones
+  const existingPinsIn = [...workspace.querySelectorAll('.block')].filter(b=>b.dataset.name==='PIN-IN');
+  const existingPinsOut = [...workspace.querySelectorAll('.block')].filter(b=>b.dataset.name==='PIN-OUT');
+  // add missing pins
+  for(let i=existingPinsIn.length;i<inputsCount;i++) createBlockInstance({name:'PIN-IN',size:{w:90,h:48},inputs:0,outputs:1,kind:'pin-in'}, 10 + i*100, 10);
+  for(let j=existingPinsOut.length;j<outputsCount;j++) createBlockInstance({name:'PIN-OUT',size:{w:90,h:48},inputs:1,outputs:0,kind:'pin-out'}, 10 + j*100, 160);
+
+  // collect runtime graph
+  const blocks = [...workspace.querySelectorAll('.block')].map(b=>({ id:b.dataset.id, name:b.dataset.name, kind:b.dataset.kind||'custom', inputs:parseInt(b.dataset.inputs,10), outputs:parseInt(b.dataset.outputs,10) }));
+  const conns = connections.map(c=>({from:{id:c.from.id,port:c.from.port}, to:{id:c.to.id,port:c.to.port}}));
+
+  // build helper maps
+  const outputsMap = {}; // key: blockId -> array of current output bits
+  blocks.forEach(b=>{ outputsMap[b.id] = new Array(b.outputs).fill(0); });
+
+  function computeOnce(){
+    let changed=false;
+    // for each block compute outputs based on its inputs (read from connections)
+    for(const b of blocks){
+      if(b.name==='PIN-IN') continue; // driven externally
+      const inVals = [];
+      for(let i=0;i<b.inputs;i++){
+        // find source connection
+        const conn = conns.find(cc=>cc.to.id===b.id && cc.to.port==i);
+        if(conn){ const src = outputsMap[conn.from.id] ? outputsMap[conn.from.id][conn.from.port] : 0; inVals.push(src?1:0); } else inVals.push(0);
+      }
+      const old = outputsMap[b.id].slice();
+      const out = computeBlockOutputByName(b.name, inVals);
+      for(let k=0;k<b.outputs;k++) outputsMap[b.id][k] = out[k]||0;
+      if(old.join('') !== outputsMap[b.id].join('')) changed=true;
+    }
+    return changed;
+  }
+
+  // simulate for all input combinations
+  const n = inputsCount; const m = outputsCount;
+  const rows = [];
+  const total = 1<<n;
+  for(let mask=0; mask<total; mask++){
+    // reset outputs
+    blocks.forEach(b=>{ outputsMap[b.id] = new Array(b.outputs).fill(0); });
+    // set PIN-IN outputs from mask
+    const pinIns = blocks.filter(b=>b.name==='PIN-IN').slice(0,n);
+    for(let i=0;i<n;i++){ if(pinIns[i]) outputsMap[pinIns[i].id][0] = ((mask>> (n-1-i)) & 1); }
+    // iterate until stable or max
+    let iter=0; while(iter<30){ const ch = computeOnce(); if(!ch) break; iter++; }
+    // collect outputs from PIN-OUT blocks
+    const pinOuts = blocks.filter(b=>b.name==='PIN-OUT').slice(0,m);
+    const outbits = [];
+    for(let j=0;j<m;j++){ if(pinOuts[j]){
+      // read its single input
+      const conn = conns.find(cc=>cc.to.id===pinOuts[j].id && cc.to.port==0);
+      const val = conn && outputsMap[conn.from.id] ? outputsMap[conn.from.id][conn.from.port] : 0;
+      outbits.push(val?1:0);
+    } else outbits.push(0); }
+    rows.push({in: mask, out: outbits});
+  }
+
+  // show editable truth table modal
+  openTruthEditModal(name, inputsCount, outputsCount, rows, (finalRows)=>{
+    // on save: create block definition and persist
+    const truth = finalRows.map(r=>{ const inStr = r.in.toString(2).padStart(n,'0'); const outStr = r.out.join(''); return `${inStr}→${outStr}`; });
+    const newBlock = { name, size:{w:140,h:64}, inputs: n, outputs: m, truth, kind:'custom' };
+    customBlocks.push(newBlock);
+    saveCustomBlocksToCookie(customBlocks);
+    addTemplateToPalette(newBlock,true);
+    // clear workspace
+    clearWorkspace();
+  });
+}
+
+function computeBlockOutputByName(name, inputs){
+  // primitive gates
+  if(name==='AND'){ const v = inputs.reduce((a,b)=>a & b, 1); return [v]; }
+  if(name==='OR'){ const v = inputs.reduce((a,b)=>a | b, 0); return [v]; }
+  if(name==='NOT'){ return [ inputs[0] ? 0 : 1 ]; }
+  // PINs handled elsewhere
+  // custom blocks are not yet usable inside other custom builds (would require recursion)
+  // default: passthrough first input to first output
+  return [ inputs[0] ? 1 : 0 ];
+}
+
+function openTruthEditModal(name, n, m, rows, onSave){
+  const modal = document.createElement('div'); modal.className='modal';
+  let html = `<h3>Edit truth table — ${name}</h3><div style="max-height:300px;overflow:auto;margin-top:8px"><table style="width:100%;font-size:13px;border-collapse:collapse"><thead><tr><th style="text-align:left">Inputs</th><th style="text-align:left">Outputs</th></tr></thead><tbody>`;
+  rows.forEach((r,idx)=>{
+    const inStr = r.in.toString(2).padStart(n,'0');
+    html += `<tr data-row="${idx}"><td style="padding:6px 8px">${inStr}</td><td style="padding:6px 8px">`;
+    r.out.forEach((b,i)=>{ html += `<button class="tb-toggle" data-row="${idx}" data-out="${i}" style="margin-right:6px;padding:4px 6px;border-radius:6px;border:1px solid rgba(255,255,255,0.05);background:${b? 'var(--accent)' : 'transparent'};color:${b? '#0b0b12':'var(--muted)'}">${b}</button>`; });
+    html += `</td></tr>`;
+  });
+  html += `</tbody></table></div><div class="row" style="justify-content:flex-end;margin-top:10px"><button id="cancelEdit" class="btn ghost">Cancel</button><button id="saveEdit" class="btn">Save</button></div>`;
+  modal.innerHTML = html; modalRoot.appendChild(modal);
+
+  // toggles
+  modal.querySelectorAll('.tb-toggle').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const row = parseInt(btn.dataset.row,10); const out = parseInt(btn.dataset.out,10);
+      rows[row].out[out] = rows[row].out[out] ? 0 : 1;
+      btn.style.background = rows[row].out[out] ? 'var(--accent)' : 'transparent';
+      btn.style.color = rows[row].out[out] ? '#0b0b12' : 'var(--muted)';
+      btn.textContent = rows[row].out[out];
+    });
+  });
+  modal.querySelector('#cancelEdit').addEventListener('click', ()=>modal.remove());
+  modal.querySelector('#saveEdit').addEventListener('click', ()=>{ modal.remove(); onSave(rows); });
+}
+
+function clearWorkspace(){ // remove blocks, connections
+  [...workspace.querySelectorAll('.block')].forEach(b=>b.remove()); connections.forEach(c=>c.pathEl.remove()); connections = []; instanceCounter=0; }
+
+// show truth
+function showTruth(blockEl){ const name = blockEl.dataset.name; const truth = JSON.parse(blockEl.dataset.truth||'[]'); const d = document.createElement('div'); d.className='details'; d.innerHTML = `<div style="font-weight:700;color:var(--accent)">${name} — truth table</div><div style="margin-top:8px">${truth.map(r=>`<div>${r}</div>`).join('')}</div><div style="margin-top:8px;text-align:right"><button id="closeBtn">Close</button></div>`; document.body.appendChild(d); d.querySelector('#closeBtn').addEventListener('click', ()=>d.remove()); }
+
+// keyboard delete connection
+let hoveredPath=null; svg.addEventListener('mousemove', e=>{ const el = document.elementFromPoint(e.clientX,e.clientY); if(el && el.tagName==='path' && el.classList.contains('connection-path')) hoveredPath=el; else hoveredPath=null; }); window.addEventListener('keydown', e=>{ if(e.key==='Delete' && hoveredPath){ const idx = connections.findIndex(c=>c.pathEl===hoveredPath); if(idx>=0){ connections[idx].pathEl.remove(); connections.splice(idx,1); } } });
+
+window.addEventListener('resize', ()=>updateAllConnections()); setInterval(updateAllConnections,200);
+</script>
+</body>
+</html>

@@ -3,16 +3,17 @@
 */
 
 // definitions
-const RAMSIZE = 1048576; // ram size in bytes
+const RAMSIZE = 20000; // ram size in bytes
 const PROGRAM_TEXT_MEMSTART = 1000; // start offset of the TEXT memory
-const PROGRAM_TEXT_MEMSTOP  = 5000; // start offset of the TEXT memory
+const PROGRAM_TEXT_MEMSTOP  = 5000; // end offset of the TEXT memory
 
 
 // listing of all memory ranges mapped
 const memoryMap = [];
 // rom containing program
 var rom = [];
-
+// stacktrace of all jumps
+var stackTrace = [];
 
 // device virtual memory
 const ram = {
@@ -85,6 +86,7 @@ const registers = {
 */
 function addMemoryMapping(name, request_mode, start_offset, stop_offset, callback)
 {
+    console.log(start_offset, stop_offset);
     if (start_offset >= 0 && start_offset < RAMSIZE && 
         stop_offset >= 0 && stop_offset < RAMSIZE  &&
         start_offset <= stop_offset)
@@ -97,6 +99,7 @@ function addMemoryMapping(name, request_mode, start_offset, stop_offset, callbac
         map["callback"] = callback;
         ram._mapping.push(map);
         console.log("added a new mapping from "+start_offset+" to "+stop_offset+" type: "+request_mode);
+        return start_offset;
     }
     else
     {
@@ -207,15 +210,20 @@ function    asm_exec_opcode(opcode)
         }
 
         // conditions of jump
-        let lt = Number(condition & (1 << 2))?1:0;
-        let eq = Number(condition & (1 << 1))?1:0;
-        let gt = Number(condition & 1)?1:0;
+	let ret = Number(condition & (1 << 14))?1:0;
+        let lt  = Number(condition & (1 << 2))?1:0;
+        let eq  = Number(condition & (1 << 1))?1:0;
+        let gt  = Number(condition & 1)?1:0;
 
         if ((lt === 1 && output < 0) || (eq === 1 && output === 0) || (gt === 1 && output > 0))
         {
-            // registers.pc = output;
-            registers.pc = registers.a;
+            registers.pc = registers.a; // change current line to the value of the A reg
+            stackTrace.push(registers.a); // add jump line to stacktrace
         }
+	else if (ret === 1)
+	{
+		registers.pc = stackTrace.pop(); // put the last used jump address to the
+	}
     }
 }
 
@@ -459,17 +467,21 @@ function asm_to_opcode(input)
     // Parse jump condition
     if (condition)
     {
+	let ret = (condition === "RET") ? 1 : 0;
         let lt = (condition === "JLT" || condition === "JLE" || condition === "JMP") ? 1 : 0;
         let eq = (condition === "JEQ" || condition === "JLE" || condition === "JMP" || condition === "JGE") ? 1 : 0;
         let gt = (condition === "JGT" || condition === "JGE" || condition === "JMP") ? 1 : 0;
 
-        if (lt === 0 && eq === 0 && gt === 0)
+        if (lt === 0 && eq === 0 && gt === 0 && ret === 0)
         {
             console.error("error: invalid condition: '"+condition+"'");
             return (-1);
         }
         // Set condition bits (bits 2-0)
         opcode |= ((lt << 2) | (eq << 1) | gt);
+
+	// set return bit
+	opcode |= (ret << 14);
     }
 
     return (opcode);

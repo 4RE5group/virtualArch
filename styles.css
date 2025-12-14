@@ -13,6 +13,51 @@ body {
     line-height: 1.15;
 }
 
+.exemples_dropdown {
+    position: absolute;
+    overflow-y: hidden;
+    right: 10px;
+    top: 10px;
+    background-color: #1e1e1e;
+    border-radius: 5px;
+    border-color: #444;
+    border-width: 1px;
+    border-style: solid;
+    width: auto;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    padding: 8px;
+    align-items: end;
+    gap: 10px;
+    z-index: 9999;
+    transition: scale(1);
+    max-width: 250px;
+
+    .exemples_cross {
+        width: 35px;
+        height: 35px;
+        font-size: 39px;
+        cursor: pointer;
+        margin-bottom: 10px;
+    }
+
+    .title {
+        width: 100%;
+        border-bottom: 5px double;
+    }
+
+    p {
+        span {
+            color: #bb86fc;
+        }
+    }
+}
+
+a {
+    color: #bb86fc;
+}
+
 .terminal {
 	background-color: #373737;
 	padding: 8px;
