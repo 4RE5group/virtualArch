@@ -1,5 +1,5 @@
 # 4re5 Virtual Arch
-A complete minimal computer architecture directly on your browser.
+A complete minimal computer architecture directly on your browser. 🚀
 
 Based on the nandgame.com architecture, it provides a simple assembly language to interact with the system.
 
@@ -9,13 +9,33 @@ This code emulates a virtual simple machine by interpreting op codes (cpu binary
 These op codes are 16 bits of length and are formatted as follow:
 
     | ci | - | - | * | - | u | op1 | op0 | zx | sw | a | d | *a | lt | eq | gt |
-
+       ┬           ┬       ┬     ┬     ┬    ┬    ┬   ┬   ┬    ┬    ┬    ┬    ┬ 
+       │           │       │     │     │    │    │   │   │    │    ╰────┴────┴─ Jump option flags
+       │           │       │     │     │    │    │   │   │    ╰─ Output is put into ram pointed by A
+       │           │       │     │     │    │    │   │   ╰─ Output is put into D register
+       │           │       │     │     │    │    │   ╰─ Output is put into A register
+       │           │       │     ╰─────┴────┴────┴─ Logical/Arithmetical operations flags
+       │           │       ╰─ Logical/Arithmetical operation type flag
+       │           ╰─ Use pointer in operations
+       ╰─ Operation/Number input flag
 
 ## :book: Assembly manual
 ### Summary
-1. [Registers](#registers)
-2. [Conditions](#conditions)
+1. [Basics of Asm language](#basics_of_asm_language)
+2. [Registers](#registers)
+3. [Conditions](#conditions)
 
+### Basics of Asm language
+- Arithmetic Operations
+    - Only **plus** and **minus** are currently supported by our virtual processor. For example:
+    - ✅ `A = A + D` or `D = A - D`
+    - ❌ `A = A * D` or `D = A / D`
+- Logical Operations
+    - Only **and**, **or** **not** and **xor** can be used for logical operations. For example:
+    - `A = A & B` or `D = A | D` or `A = ~A` or `D = A ^ B`
+
+> [!Warning]
+> Most of unavailable operations could be achieved using [our standard library functions](./stdlib/)
 
 ### Registers
 Operations can be processed using 3 main registers: `A`, `D` and `*A` (which is used as a pointer for ram access)
@@ -42,7 +62,8 @@ D = *A   # reads the memory at offset 1000
 ### Conditions
 > Any condition can be placed after an operation using the `;` character.
 
-> :warning: NOTE: conditial jumps are conditioned by the sign of the operation before the `;` character 
+> [!Warning]
+> NOTE: conditial jumps are conditioned by the sign of the operation before the `;` character 
 
 Conditions are available to do jumps in your code.
 
@@ -91,13 +112,14 @@ Here are the full list with examples.
 - [x] Handle if user does not have javascript allowed
 - [x] Add exemples
 - [x] Enhance the display
-- [ ] Make the emulator faster and the UI responsive
+- [x] Make the emulator faster and the UI responsive
 
 Asm Language improvements
 - [x] Add DEFINE for preprocessing data
 - [x] Handle chars when defining A register
 - [x] Add labels for better jumps
 - [x] Add a text section that puts constants into memory
+- [ ] Replicate the C stdlib functions in ASM
 
 C Language improvements
 - [ ] Handle any kind of C variables and C variable definition (e.g. `char *test = "Hello World"` abd `char test[12] = "Hello World!"` should do the same thing)
