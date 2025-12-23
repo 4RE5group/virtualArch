@@ -120,6 +120,7 @@ Asm Language improvements
 - [x] Add labels for better jumps
 - [x] Add a text section that puts constants into memory
 - [ ] Replicate the C stdlib functions in ASM
+- [ ] Add a way to include another file to the project
 
 C Language improvements
 - [ ] Handle any kind of C variables and C variable definition (e.g. `char *test = "Hello World"` abd `char test[12] = "Hello World!"` should do the same thing)
