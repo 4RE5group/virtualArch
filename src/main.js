@@ -18,6 +18,7 @@ var stackTrace = [];
 // device virtual memory
 const ram = {
     _memory: new Array(RAMSIZE).fill(0),
+    _stack: [],
     _mapping: [],
     get read()
     {
@@ -49,9 +50,7 @@ const ram = {
             }
         });
         if (result === null && this._memory.length > registers.a && registers.a >= 0)
-        {
             this._memory[registers.a] = v;
-        }
     }
 };
 

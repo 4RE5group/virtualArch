@@ -1,11 +1,22 @@
 var result = 0;
 var global_definitions = new Map();
 // add memory mapping
+global_definitions.set("STACK_PUSH", addMemoryMapping("stack_push", "W", RAMSIZE-12, RAMSIZE-11, (index, type, value) => {
+    ram._stack.push(value);
+}));
+global_definitions.set("STACK_POP", addMemoryMapping("stack_pop", "R", RAMSIZE-11, RAMSIZE-10, (index, type, value) => {
+    console.error("pop elem");
+    if (ram._stack.length == 0)
+        return (-1);
+    return (ram._stack.pop());
+}));
 global_definitions.set("TMP0", RAMSIZE-10);
 global_definitions.set("TMP1", RAMSIZE-9);
 global_definitions.set("TMP2", RAMSIZE-8);
 global_definitions.set("TMP3", RAMSIZE-7);
 global_definitions.set("TMP4", RAMSIZE-6);
+global_definitions.set("TMP5", RAMSIZE-5);
+global_definitions.set("TMP6", RAMSIZE-4);
 global_definitions.set("CURSOR", RAMSIZE-3);
 global_definitions.set("KEYPRESS", RAMSIZE);
 global_definitions.set("WRITE", addMemoryMapping("character_display", "W", RAMSIZE-2, RAMSIZE-1, (index, type, value) => {
@@ -129,8 +140,8 @@ function viewUpdate()
     document.querySelector(".registers-panel").children.item(1).children.item(1).innerText = formatHex(registers.d);
     document.querySelector(".registers-panel").children.item(1).children.item(2).innerText = "(" + registers.d + ")";
     // *a
-    document.querySelector(".registers-panel").children.item(2).children.item(1).innerText = formatHex(registers.a_ptr);
-    document.querySelector(".registers-panel").children.item(2).children.item(2).innerText = "(" + registers.a_ptr + ")";
+    document.querySelector(".registers-panel").children.item(2).children.item(1).innerText = formatHex(ram._memory[registers.a]);
+    document.querySelector(".registers-panel").children.item(2).children.item(2).innerText = "(" + ram._memory[registers.a] + ")";
 	displayScreen();
     detectLanguage();
 }

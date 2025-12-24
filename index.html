@@ -85,12 +85,13 @@
         <p class="title">C</p>
         <button class="btn" onclick="load_sample('hello_world.c')">Hello World</button>
         <br>
+        <a href="./README.md">More documentation here</a>
         <br>
         <span>About</span>
         <p>This project is inspired by <a href="https://nandgame.com/">nandgame</a>. It is a live cpu emulator running custom ASM code.</p>
         <p>It has only two registers: <span>A</span> and <span>D</span> and only <span>A</span> can be directly assigned to a value. e.g: <span>A = 42</span> and <span>D = A + 1</span></p>
         <p>It exists few operands to manipulate data: <span>+</span>, <span>-</span>, <span>~</span>, <span>|</span>, <span>&</span> and <span>^</span></p>
-        <p>You can define pre-processor variables using <span>#DEFINE NAME VALUE</span>. Few global variables are defined to help you storing data or use memory mappings for IO purposes: <span>CURSOR</span>, <span>KEYPRESS</span>, <span>WRITE</span>, <span>TMP0...TMP4</span></p>
+        <p>You can define pre-processor variables using <span>#DEFINE NAME VALUE</span>. Few global variables are defined to help you storing data or use memory mappings for IO purposes: <span>CURSOR</span>, <span>KEYPRESS</span>, <span>WRITE</span>, <span>TMP0...TMP6</span>, <span>STACK_POP and STACK_PUSH</span></p>
         <p>Labels can be used to jump back to a line, creating a loop. Use a line like <span>MY_LABEL:</span> to create it and <span>A = MY_LABEL<br>A; JMP</span></p>
         <span>Credits: 4re5, all rights reserved</span>
     </div>
