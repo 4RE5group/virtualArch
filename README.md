@@ -142,6 +142,7 @@ Asm Language improvements
 - [ ] Replicate the C stdlib functions in ASM
 - [ ] Add a way to include another file to the project
 - [x] Implement stack system with returns
+- [ ] Use WASM to make execution faster
 
 C Language improvements
 - [ ] Handle any kind of C variables and C variable definition (e.g. `char *test = "Hello World"` abd `char test[12] = "Hello World!"` should do the same thing)

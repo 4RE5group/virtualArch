@@ -36,5 +36,7 @@ LOOP:
     A; JMP
 
 STOP:
+    0; RET   # clear last call
+    0; RET   # clean the call stack
     A = STOP
     A; JMP # infinite loop
