@@ -8,15 +8,16 @@ This code emulates a virtual simple machine by interpreting op codes (cpu binary
 
 These op codes are 16 bits of length and are formatted as follow:
 
-    | ci | - | - | * | - | u | op1 | op0 | zx | sw | a | d | *a | lt | eq | gt |
-       ┬           ┬       ┬     ┬     ┬    ┬    ┬   ┬   ┬    ┬    ┬    ┬    ┬ 
-       │           │       │     │     │    │    │   │   │    │    ╰────┴────┴─ Jump option flags
-       │           │       │     │     │    │    │   │   │    ╰─ Output is put into ram pointed by A
-       │           │       │     │     │    │    │   │   ╰─ Output is put into D register
-       │           │       │     │     │    │    │   ╰─ Output is put into A register
-       │           │       │     ╰─────┴────┴────┴─ Logical/Arithmetical operations flags
-       │           │       ╰─ Logical/Arithmetical operation type flag
-       │           ╰─ Use pointer in operations
+    | ci | ret | - | * | - | u | op1 | op0 | zx | sw | a | d | *a | lt | eq | gt |
+       ┬     ┬       ┬       ┬     ┬     ┬    ┬    ┬   ┬   ┬    ┬    ┬    ┬    ┬ 
+       │     │       │       │     │     │    │    │   │   │    │    ╰────┴────┴─ Jump option flags
+       │     │       │       │     │     │    │    │   │   │    ╰─ Output is put into ram pointed by A
+       │     │       │       │     │     │    │    │   │   ╰─ Output is put into D register
+       │     │       │       │     │     │    │    │   ╰─ Output is put into A register
+       │     │       │       │     ╰─────┴────┴────┴─ Logical/Arithmetical operations flags
+       │     │       │       ╰─ Logical/Arithmetical operation type flag
+       │     │       ╰─ Use pointer in operations
+       │     ╰─ Return to last JUMP flag
        ╰─ Operation/Number input flag
 
 ## :book: Assembly manual
@@ -67,9 +68,10 @@ D = *A   # reads the memory at offset 1000
 
 Conditions are available to do jumps in your code.
 
-It only exists 6 ones.
+It only exists 7 ones.
 
 - JMP (jump in `any case`)
+- JNE (jump if `result != 0`)
 - JLT (jump if `result  < 0`)
 - JLE (jump if `result <= 0`)
 - JEQ (jump if `result == 0`)
@@ -81,9 +83,27 @@ It only exists 6 ones.
 e.g
 ```
 A = 15
-A;JMP
+A; JMP # will jump to line `15`.
 ```
-will jump to line `16` (pc starts at line 0 but line 1 in editor).
+
+
+> After a jump, the current line is pushed into the stack. You can then use `RET` to return to the parent function at the line of the jump.
+
+
+e.g
+```
+MAIN:
+    A = FUNC1
+    A; JMP
+    # ...
+
+FUNC1:
+    ; RET # will go back to the line after the JMP 
+```
+
+> [!Warning]
+> All functions **MUST** end with `0; RET` so the stack remain empty after all jumps or at least do a **CLEANING FUNCTION**
+> Note that `; RET` gets you back to the caller line but `0; RET` continues the execution.
 
 
 ## :book: C manual
@@ -133,7 +153,7 @@ C Language improvements
 
 
 Known Bugs
-- [ ] Can't add labels with a comment on the same line
+- [x] Can't add labels with a comment on the same line
 - [ ] Can't call a function with a quoted char as arg in C code
 - [x] Writing 'if (' or 'for' inside of the code editor is causing a crash [fixed here](https://github.com/4RE5group/virtualArch/commit/30b30e21a673cb056dc449a8d7bb0adee8759752)
 - [ ] Some C instructions are declared as errors/unrecognized. We need to fix C instruction types recognition
@@ -141,3 +161,4 @@ Known Bugs
 - [ ] `for (int i = j; i < 5; i++)` returns an error. Need to define i to 0 in `TEXT` section then define it before the for
 - [ ] Cant stack 2 `for`. The compiler comments the second for
 - [ ] `for` loops does not initialize var to the given value (only placed in `TEXT`)
+- [x] `; JMP` operation is consierated as a number input instead of an instruction

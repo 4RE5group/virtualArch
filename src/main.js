@@ -19,6 +19,7 @@ var stackTrace = [];
 const ram = {
     _memory: new Array(RAMSIZE).fill(0),
     _stack: [],
+    _call_stack: [],
     _mapping: [],
     get read()
     {
@@ -122,11 +123,10 @@ function    asm_exec_opcode(opcode)
 
     let ci =            Number(opcode & (1 << 15))?1:0;
     let pointer =       Number(opcode & (1 << 12))?1:0;
-    let l2 =            Number(opcode & (1 << 14))?1:0;
-    let r2 =            Number(opcode & (1 << 13))?1:0;
     let destination =   (opcode & parseInt("0000000000111000", 2)) >> 3;
     let calculation =   (opcode & parseInt("0000011111000000", 2)) >> 6;
     let condition =     (opcode & parseInt("0000000000000111", 2));
+    let ret =           Number(opcode & (1 << 14))?1:0;
     
     if (ci === 0) // set default register to value
         registers.a = Number(opcode & (~(1 << 15)));
@@ -142,10 +142,8 @@ function    asm_exec_opcode(opcode)
         var left_term = registers.d;
         var right_term = registers.a;
 
-        if (pointer === 1) {
+        if (pointer === 1)
             right_term = registers.a_ptr;
-        }
-
 
         // left term
         if (zx === 1)
@@ -163,7 +161,7 @@ function    asm_exec_opcode(opcode)
         // swap left and right terms
         if (sw === 1)
         {
-            var tmp = right_term;
+            let tmp = right_term;
             right_term = left_term;
             left_term = tmp;
         }
@@ -209,20 +207,21 @@ function    asm_exec_opcode(opcode)
         }
 
         // conditions of jump
-	let ret = Number(condition & (1 << 14))?1:0;
         let lt  = Number(condition & (1 << 2))?1:0;
         let eq  = Number(condition & (1 << 1))?1:0;
         let gt  = Number(condition & 1)?1:0;
 
-        if ((lt === 1 && output < 0) || (eq === 1 && output === 0) || (gt === 1 && output > 0))
+        if ((lt === 1 && output < 0) || (eq === 1 && output === 0) || (gt === 1 && output > 0) && (ret === 0))
         {
+            ram._call_stack.push(registers.pc); // add jump line to stack
             registers.pc = registers.a; // change current line to the value of the A reg
-            stackTrace.push(registers.a); // add jump line to stacktrace
         }
-	else if (ret === 1)
-	{
-		registers.pc = stackTrace.pop(); // put the last used jump address to the
-	}
+        if (ret === 1 && ram._call_stack.length > 0)
+        {
+            let v = ram._call_stack.pop(); // 0; RET can just POP without going back to caller
+            if (output > 0)
+                registers.pc = v; // put the last used jump address to the
+        }
     }
 }
 
@@ -257,7 +256,7 @@ function asm_to_opcode(input)
     }
 
     // Set the CI bit (bit 15) to 1 if there's an operation
-    if (operation)
+    if (operation || condition)
         opcode |= (1 << 15);
 
     // Parse destination registers
@@ -392,13 +391,9 @@ function asm_to_opcode(input)
             op0 = 0;
             operation_symbol = "+";
             if (operation === "D") // A = D   =>   A = D + 0
-            {
                 operation += "+0"; 
-            }
             else if (operation === "A" || operation === "*A")
-            {
                 operation = "0+" + operation;
-            }
         }
 
         let parts = operation.split(operation_symbol);
@@ -414,9 +409,8 @@ function asm_to_opcode(input)
         // op1 = 1  => 1 to right term only if addition/substraction mode
 
         // check for zero extend
-        if (left_term === "0") {
+        if (left_term === "0")
             zx = 1;
-        }
         else if (right_term === "0")
         {
             zx = 1;
@@ -466,10 +460,10 @@ function asm_to_opcode(input)
     // Parse jump condition
     if (condition)
     {
-	let ret = (condition === "RET") ? 1 : 0;
-        let lt = (condition === "JLT" || condition === "JLE" || condition === "JMP") ? 1 : 0;
+	    let ret = (condition === "RET") ? 1 : 0;
+        let lt = (condition === "JNE" || condition === "JLT" || condition === "JLE" || condition === "JMP") ? 1 : 0;
         let eq = (condition === "JEQ" || condition === "JLE" || condition === "JMP" || condition === "JGE") ? 1 : 0;
-        let gt = (condition === "JGT" || condition === "JGE" || condition === "JMP") ? 1 : 0;
+        let gt = (condition === "JNE" || condition === "JGT" || condition === "JGE" || condition === "JMP") ? 1 : 0;
 
         if (lt === 0 && eq === 0 && gt === 0 && ret === 0)
         {
@@ -479,8 +473,8 @@ function asm_to_opcode(input)
         // Set condition bits (bits 2-0)
         opcode |= ((lt << 2) | (eq << 1) | gt);
 
-	// set return bit
-	opcode |= (ret << 14);
+	    // set return bit
+	    opcode |= (ret << 14);
     }
 
     return (opcode);

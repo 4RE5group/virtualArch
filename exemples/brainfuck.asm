@@ -187,25 +187,6 @@ HANDLE_OPENING_BRACKET:
     A = LOOP
     A; JMP
 
-HANDLE_CLOSING_BRACKET:
-    A = ptr
-    D = *A
-	A = MAX_BRAINFUCK_CELLS
-	A = A + D
-	D = *A
-    A = STOP_WHILE
-    D; JEQ  # if zero, stop while
-     
-    # else i = last index of [
-    A = last_bracket
-    D = *A # save new index
-    
-    A = i
-    *A = D
-STOP_WHILE:
-    A = LOOP
-    A; JMP
-
 
 HANDLE_COMMA:
     A = KEYPRESS   # read keypress
@@ -218,76 +199,12 @@ HANDLE_COMMA:
     A = LOOP
     A; JMP
 
-STOP:
-    A = STOP
-    A; JMP
-
-HANDLE_POINT:
-    A = ptr
-    D = *A
-    A = MEM_BRAINFUCK
-    A = A + D
-    D = *A
-    A = WRITE
-    *A = D
-
-    # advance cursor
-    A = CURSOR
-    *A = *A + 1
-
-    A = LOOP
-    A; JMP
-
-HANDLE_UPPER:
-    A = ptr
-    *A = *A + 1
-
-    A = LOOP
-    A; JMP
-
-HANDLE_LOWER:
-    A = ptr
-    *A = *A - 1
-
-    A = LOOP
-    A; JMP
-
-HANDLE_PLUS:
-    A = ptr
-    D = *A
-    A = MEM_BRAINFUCK
-    A = A + D
-    *A = *A + 1
-
-    A = LOOP
-    A; JMP
-
-HANDLE_MINUS:
-    A = ptr
-    D = *A
-    A = MEM_BRAINFUCK
-    A = A + D
-    *A = *A - 1
-
-    A = LOOP
-    A; JMP
-
-HANDLE_OPENING_BRACKET:
-    A = i
-    D = *A # save index of char    
-
-    A = last_bracket
-    *A = D # save last index to var
-    
-    A = LOOP
-    A; JMP
-
 HANDLE_CLOSING_BRACKET:
     A = ptr
     D = *A
-	A = MEM_BRAINFUCK
-	A = A + D
-	D = *A
+    A = MEM_BRAINFUCK
+    A = A + D
+    D = *A
     A = STOP_WHILE
     D; JEQ  # if zero, stop while
      
@@ -300,19 +217,9 @@ HANDLE_CLOSING_BRACKET:
 STOP_WHILE:
     A = LOOP
     A; JMP
-
-
-HANDLE_COMMA:
-    A = KEYPRESS   # wait for key
-    D = *A
-    A = ptr
-    D = *A         # get current ptr (or use TMP0)
-    A = MEM_BRAINFUCK
-    A = A + D
-    *A = D         # store input char
-    A = LOOP
-    A; JMP
  
 STOP:
+    0; RET    # clear last call
+    0; RET    # clean the call stack
     A = STOP
     A; JMP

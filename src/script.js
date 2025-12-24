@@ -1,11 +1,22 @@
 var result = 0;
 var global_definitions = new Map();
+
+const asmEditor = document.getElementById("asm_code_editor");
+const cEditor = document.getElementById("c_code_editor");
+const asmLines = document.getElementById("asm_line_numbers");
+const cLines = document.getElementById("c_line_numbers");
+const pcNum = document.getElementById("pc_num");
+const registersPanel = document.querySelector(".registers-panel");
+const binarySwitches = document.querySelector(".binary-switches").children;
+
+
+
+
 // add memory mapping
 global_definitions.set("STACK_PUSH", addMemoryMapping("stack_push", "W", RAMSIZE-12, RAMSIZE-11, (index, type, value) => {
     ram._stack.push(value);
 }));
 global_definitions.set("STACK_POP", addMemoryMapping("stack_pop", "R", RAMSIZE-11, RAMSIZE-10, (index, type, value) => {
-    console.error("pop elem");
     if (ram._stack.length == 0)
         return (-1);
     return (ram._stack.pop());
@@ -117,33 +128,24 @@ function detectLanguage()
 }
 function viewUpdate()
 {
-    result = 0;
-    for (i = 0; i < 16; i++) {
-        var elem = document.querySelector(".binary-switches").children.item(i).querySelector("input");
-        if (elem.checked == true) {
+    let result = 0;
+    for (let i = 0; i < 16; i++)
+        if (binarySwitches[i].querySelector("input").checked)
             result |= (1 << (15 - i));
-        }
-    }
+
     document.getElementById("decimal_result").innerText = result;
-    document.getElementById("hexadecimal_result").innerText = "0x" + result.toString(16);
-    // Helper function to format 16-bit unsigned hex
-    function formatHex(value)
-    {
-        // Convert to 16-bit unsigned integer
-        const unsignedValue = value & 0xffff;
-        return "0x" + unsignedValue.toString(16).padStart(4, '0');
-    }
-    // a
-    document.querySelector(".registers-panel").children.item(0).children.item(1).innerText = formatHex(registers.a);
-    document.querySelector(".registers-panel").children.item(0).children.item(2).innerText = "(" + registers.a + ")";
-    // d
-    document.querySelector(".registers-panel").children.item(1).children.item(1).innerText = formatHex(registers.d);
-    document.querySelector(".registers-panel").children.item(1).children.item(2).innerText = "(" + registers.d + ")";
-    // *a
-    document.querySelector(".registers-panel").children.item(2).children.item(1).innerText = formatHex(ram._memory[registers.a]);
-    document.querySelector(".registers-panel").children.item(2).children.item(2).innerText = "(" + ram._memory[registers.a] + ")";
-	displayScreen();
-    detectLanguage();
+    document.getElementById("hexadecimal_result").innerText = "0x" + (result & 0xffff).toString(16);
+
+    const fmt = v => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
+
+    registersPanel.children[0].children[1].innerText = fmt(registers.a);
+    registersPanel.children[0].children[2].innerText = `(${registers.a})`;
+    registersPanel.children[1].children[1].innerText = fmt(registers.d);
+    registersPanel.children[1].children[2].innerText = `(${registers.d})`;
+    registersPanel.children[2].children[1].innerText = fmt(ram._memory[registers.a]);
+    registersPanel.children[2].children[2].innerText = `(${ram._memory[registers.a]})`;
+
+    displayScreen();
 }
 function editRom() 
 {
@@ -286,56 +288,88 @@ function editRom()
 }
 function highlightCurrentLine(pc)
 {
-    ["asm_code_editor", "c_code_editor"].forEach(element => {
-        const lines = document.getElementById(element).value.split('\n');
-        const lineNumbers = document.getElementById(element.split("code_editor")[0]+'line_numbers');
-        lineNumbers.innerHTML = lines.map((_, i) =>
-            `<div${i+1 === pc ? ' class="highlight-line"' : ''}>${i+1}</div>`
-        ).join('');
-    });
+    const update = (editor, linesElem) => {
+        const count = editor.value.split('\n').length;
+        let html = "";
+        for (let i = 1; i <= count; i++)
+            html += `<div${i === pc ? ' class="highlight-line"' : ''}>${i}</div>`;
+        linesElem.innerHTML = html;
+    };
+    update(asmEditor, asmLines);
+    update(cEditor, cLines);
 }
 function stepExec()
 {
-    registers.pc++;
-    if (registers.pc <= 0)
-    {
-        alert("error: pc is outside range '"+registers.pc+"'");
-        return;
-    }
-    if (registers.pc > rom.length) registers.pc = 1;
-    highlightCurrentLine(registers.pc);
-    document.getElementById("pc_num").innerText = registers.pc;
-    if (rom[registers.pc - 1] != null) // skip comments/non code lines
-        asm_exec_opcode(rom[registers.pc - 1]);
+    let pc = ++registers.pc;
+    if (pc <= 0) return;
+    if (pc > rom.length) pc = registers.pc = 1;
+
+    pcNum.innerText = pc;
+    highlightCurrentLine(pc);
+
+    const op = rom[pc - 1];
+    if (op != null) asm_exec_opcode(op);
+
     viewUpdate();
 }
 function reset()
 {
-	clearScreen();
-    registers.pc = 0;
-    document.getElementById("pc_num").innerText = registers.pc + 1;
+    clearScreen();
+    registers._a = 0;
+    registers._d = 0;
+    registers._pc = 0;
+    ram._call_stack.length = 0;
+    pcNum.innerText = 1;
     highlightCurrentLine(1);
 }
 var stopRun = false;
+var runTimer = null;
 var runSpeed = 250;
+
+function getRunSpeed()
+{
+    return 250 - document.getElementById("runSpeedController").value;
+}
+
 function run()
 {
     stopRun = false;
-    run_recur();
+
+    if (runTimer !== null)
+        clearInterval(runTimer);
+
+    runTimer = setInterval(tick, getRunSpeed());
 }
+
+function tick()
+{
+    if (stopRun)
+    {
+        clearInterval(runTimer);
+        runTimer = null;
+        return;
+    }
+    stepExec();
+
+    const newSpeed = getRunSpeed();
+    if (runTimer && runTimer._speed !== newSpeed)
+    {
+        clearInterval(runTimer);
+        runTimer = setInterval(tick, newSpeed);
+        runTimer._speed = newSpeed;
+    }
+}
+
 function stop()
 {
     stopRun = true;
+    if (runTimer !== null)
+    {
+        clearInterval(runTimer);
+        runTimer = null;
+    }
 }
-function run_recur()
-{
-    runSpeed = 250 - document.getElementById("runSpeedController").value;
-    setTimeout(() => {
-        stepExec();
-        if (!stopRun)
-            run_recur();
-    }, runSpeed);
-}
+
 var samples_opened = false;
 function toggle_samples()
 {
