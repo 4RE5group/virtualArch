@@ -1,72 +1,82 @@
-# Simple test division system.
-# use carefully. Not efficient.
-#     TMP2 = TMP0 / TMP1
+# Simple euclidian division system
+#     TMP2 = TMP0 / TMP1 (quotient)
+#     TMP3 = TMP0 % TMP1 (remainder)
 
 TEXT:
     i 0
     remainder 0
 
-# simple main for testing purposes
+# -------- test main --------
 MAIN:
-   A = 100       # number 1
-   D = A
-   A = TMP0
-   *A = D
+    A = 42
+    D = A
+    A = TMP0
+    *A = D
 
-   A = 10        # number 2
-   D = A
-   A = TMP1
-   *A = D
+    A = 10
+    D = A
+    A = TMP1
+    *A = D
 
-   A = DIVIDE
-   A; JMP
+    A = DIVIDE
+    ; JMP
 
 
-
+# -------- division --------
 DIVIDE:
-    # divide TMP0 by TMP1
+    # i = 0
     A = i
     *A = 0
 
+    # remainder = TMP0
     A = TMP0
     D = *A
     A = remainder
     *A = D
 
-    # division by 0 security
+    # if TMP1 == 0 → exit
     A = TMP1
     D = *A
     A = DIVIDE_EXIT
     D; JEQ
 
+
 DIVIDE_LOOP:
-    # increment the count
+    # if remainder < TMP1 → exit
+    A = TMP1
+    D = *A
+    A = remainder
+    D = *A - D
+    A = DIVIDE_EXIT
+    D; JLT
+
+    # remainder -= TMP1
+    A = TMP1
+    D = *A
+    A = remainder
+    *A = *A - D
+
+    # i++
     A = i
     *A = *A + 1
-    
-    # if remainder < TMP1 exit
-    A = TMP1
-    D = *A
-    A = remainder
-    D = *A - D 
-    A = DIVIDE_EXIT
-    D; JLE
 
-
-    A = TMP1
-    D = *A
-    A = remainder
-    *A = *A - D        # remove TMP1 from remainder
-   
     A = DIVIDE_LOOP
-    A; JMP
+    ; JMPzzkkzk
+
 
 DIVIDE_EXIT:
-   A = i
-   D = *A
+    # TMP2 = quotient
+    A = i
+    D = *A
+    A = TMP2
+    *A = D
 
-   A = TMP2           # save the result into TMP2
-   *A = D
-     
-   A = DIVIDE_EXIT
-   A; JMP
+    # TMP3 = remainder
+    A = remainder
+    D = *A
+    A = TMP3
+    *A = D
+
+END:
+    A = END
+    ; JMP

@@ -302,7 +302,7 @@ function stepExec()
 {
     let pc = ++registers.pc;
     if (pc <= 0) return;
-    if (pc > rom.length) pc = registers.pc = 1;
+    if (pc > rom.length) stop();
 
     pcNum.innerText = pc;
     highlightCurrentLine(pc);
