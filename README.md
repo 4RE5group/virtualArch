@@ -58,6 +58,20 @@ Or
 A = 1000
 D = *A   # reads the memory at offset 1000
 ```
+This also works using static variables/mapping definitions.
+e.g.
+```
+TEXT:
+    i 0 # static variable definition
+
+MAIN:
+    A = i   # i is the address of the memory where it has been stored
+    *A = 0  # i = 0
+
+    # or
+    A = CURSOR # address of the memory mapped byte containing the cursor position
+    *A = 0
+```
 
 
 ### Conditions
