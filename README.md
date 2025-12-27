@@ -62,7 +62,7 @@ This also works using static variables/mapping definitions.
 e.g.
 ```
 TEXT:
-    i 0 # static variable definition
+    i 0     # static variable definition
 
 MAIN:
     A = i   # i is the address of the memory where it has been stored
