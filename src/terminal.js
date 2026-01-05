@@ -1,5 +1,5 @@
 /*
-    Terminal displaying functions (no screen_buffer)
+    Terminal displaying functions
 */
 
 const SCREEN_WIDTH  = 640;
@@ -29,25 +29,26 @@ function initScreen()
     clearScreen();
 }
 
-function displayScreen()
+function RGB332_to_RGB(color)
 {
-    // no buffer anymore, drawing is immediate
+    let b = Math.round(255 * (color & 3) / 3);
+    let g = Math.round(255 * ((color >> 2) & 7) / 7);
+    let r = Math.round(255 * ((color >> 5) & 7) / 7);
+
+    return (`#${r.toString(16)}${g.toString(16)}${b.toString(16)}`);
 }
 
-function updateScreenbuffer()
+function writeCharacter(column, row, character, fg, bg)
 {
-    // removed (kept for compatibility)
-}
-
-function writeCharacter(column, row, character)
-{
-    if (typeof character === "string" && character.length === 1) {
+    if (typeof character === "string" && character.length === 1)
+    {
         const code = character.charCodeAt(0);
-        if (code >= 32 && code <= 127) {
+        if (code >= 32 && code <= 127)
+        {
             ctx.font = FONT_SIZE + "px Arial";
             ctx.textBaseline = "alphabetic";
 
-            ctx.fillStyle = "#000000";
+            ctx.fillStyle = RGB332_to_RGB(bg);
             ctx.fillRect(
                 column * FONT_SIZE,
                 row * FONT_SIZE,
@@ -55,7 +56,7 @@ function writeCharacter(column, row, character)
                 FONT_SIZE
             );
 
-            ctx.fillStyle = "#ffffff";
+            ctx.fillStyle = RGB332_to_RGB(fg);
             ctx.fillText(
                 character,
                 column * FONT_SIZE,

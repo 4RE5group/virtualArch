@@ -13,6 +13,11 @@ body {
     line-height: 1.15;
 }
 
+textarea {
+  tab-size: 2;
+  -moz-tab-size: 2;
+}
+
 .exemples_dropdown {
     position: absolute;
     overflow-y: hidden;
@@ -187,18 +192,48 @@ a {
     width: 100%;
 }
 
-.code-editor {
+.editor-wrapper {
+    position: relative;
     width: 50%;
     height: 400px;
-    padding: 10px 0 10px 10px;
     background: #1e1e1e;
-    color: #e0e0e0;
+}
+
+.code-editor, .code-highlight {
+    tab-size: 2;
+    -moz-tab-size: 2;
+    width: 100%;
+    height: 100%;
+    padding: 10px 0 10px 10px;
+    margin: 0;
     border: none;
     font-family: inherit;
     font-size: 14px;
     line-height: 1.5;
+    box-sizing: border-box;
+    white-space: pre;
+    overflow: auto;
+}
+
+.code-editor {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: transparent;
+    color: transparent;
+    caret-color: #e0e0e0;
+    z-index: 1;
     resize: none;
     outline: none;
+}
+
+.code-highlight {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 0;
+    pointer-events: none;
+    color: #e0e0e0;
 }
 
 .pc-display {

@@ -46,9 +46,15 @@
         <div class="code-editor-container">
             <div class="code-editor-div">
                 <div class="line-numbers" id="asm_line_numbers"></div>
-                <textarea class="code-editor" id="asm_code_editor" autocomplete="on" oninput="editRom()" name="asmcode" spellcheck="false"></textarea>
+                <div class="editor-wrapper" id="asm_editor_wrapper">
+                    <pre class="code-highlight" id="asm_highlight"></pre>
+                    <textarea class="code-editor" id="asm_code_editor" autocomplete="on" oninput="editRom(); updateHighlight();" name="asmcode" spellcheck="false"></textarea>
+                </div>
                 <div class="line-numbers" id="c_line_numbers"></div>
-                <textarea class="code-editor" id="c_code_editor"   autocomplete="on" oninput="editRom()" name="ccode" spellcheck="false"></textarea>
+                <div class="editor-wrapper" id="c_editor_wrapper">
+                    <pre class="code-highlight" id="c_highlight"></pre>
+                    <textarea class="code-editor" id="c_code_editor"   autocomplete="on" oninput="editRom(); updateHighlight();" name="ccode" spellcheck="false"></textarea>
+                </div>
             </div>
             
             <div class="pc-display">PC: <span id="pc_num">0</span></div>

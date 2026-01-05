@@ -4,8 +4,6 @@ function isNumeric(str) {
          !isNaN(parseFloat(str)) // ...and ensure strings of whitespace fail
 }
 
-
-
 const originalConsoleError = console.error;
 
 // override console.error

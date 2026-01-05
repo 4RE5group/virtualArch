@@ -13,6 +13,8 @@ const binarySwitches = document.querySelector(".binary-switches").children;
 
 
 // add memory mapping
+global_definitions.set("COLOR_BG", RAMSIZE-14); ram._memory[global_definitions.get("COLOR_BG")] = 0x00;
+global_definitions.set("COLOR_FG", RAMSIZE-13); ram._memory[global_definitions.get("COLOR_FG")] = 0xFF;
 global_definitions.set("STACK_PUSH", addMemoryMapping("stack_push", "W", RAMSIZE-12, RAMSIZE-11, (index, type, value) => {
     ram._stack.push(value);
 }));
@@ -33,19 +35,22 @@ global_definitions.set("KEYPRESS", RAMSIZE);
 global_definitions.set("WRITE", addMemoryMapping("character_display", "W", RAMSIZE-2, RAMSIZE-1, (index, type, value) => {
     // cursor pos is stored in memory
     let cursor_idx = global_definitions.get("CURSOR");
-    if (!cursor_idx)
+    let fg_idx = global_definitions.get("COLOR_FG");
+    let bg_idx = global_definitions.get("COLOR_BG");
+    if (!cursor_idx || !fg_idx || !bg_idx)
     {
-        console.error("error: CURSOR definition is not defined");
+        console.error("error: CURSOR, COLOR_FG or COLOR_BG definitions are not defined");
         return;
     }
     let cursor = ram._memory[cursor_idx];
+    let fg = ram._memory[fg_idx];
+    let bg = ram._memory[bg_idx];
     let max_char_per_line = SCREEN_WIDTH / (FONT_SIZE);
     let x = Math.trunc(cursor % max_char_per_line);
     let y = Math.trunc(cursor / max_char_per_line);
-    writeCharacter(x, y, String.fromCharCode(registers.d));
+    writeCharacter(x, y, String.fromCharCode(registers.d), fg, bg);
 }));
 initScreen();
-displayScreen();
 document.getElementById("terminal_input").addEventListener("keydown", (e) => {
     let output_char = 0;
     //console.log(e.code);
@@ -91,38 +96,78 @@ document.getElementById("terminal_input").addEventListener("keydown", (e) => {
     if (keypress_idx)
         ram._memory[keypress_idx] = output_char;
 });
+
+// tab handling
+document.getElementById("asm_code_editor").addEventListener("keydown", e => puttab(e));
+document.getElementById("c_code_editor").addEventListener("keydown", e => puttab(e));
+
 // to make lines follow code input
-document.getElementById("asm_code_editor").addEventListener("scroll", () => {
-    document.getElementById("asm_line_numbers").scrollTop = document.getElementById("asm_code_editor").scrollTop;
-});
-document.getElementById("c_code_editor").addEventListener("scroll", () => {
-    document.getElementById("c_line_numbers").scrollTop = document.getElementById("c_code_editor").scrollTop;
-});
+const syncScroll = (editorId, lineNumbersId, highlightId) => {
+    const editor = document.getElementById(editorId);
+    const lineNumbers = document.getElementById(lineNumbersId);
+    const highlight = document.getElementById(highlightId);
+    
+    editor.addEventListener("scroll", () => {
+        lineNumbers.scrollTop = editor.scrollTop;
+        highlight.scrollTop = editor.scrollTop;
+        highlight.scrollLeft = editor.scrollLeft;
+    });
+};
+
+syncScroll("asm_code_editor", "asm_line_numbers", "asm_highlight");
+syncScroll("c_code_editor", "c_line_numbers", "c_highlight");
 
 document.querySelectorAll(".line-numbers").forEach(elem => {
     elem.style.height = (document.querySelector(".code-editor").clientHeight - 20)+"px";
 })
 highlightCurrentLine();
 detectLanguage();
+editRom(); 
+updateHighlight();
+
+function escapeHTML(s) {
+  return s.replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+}
+
+
+function puttab(e)
+{
+    let ta = e.currentTarget;
+    if (e.key === "Tab")
+    {
+        e.preventDefault();
+
+
+        const start = ta.selectionStart;
+        const end   = ta.selectionEnd;
+
+        ta.setRangeText("\t", start, end, "end");
+    }
+}
+
 function detectLanguage()
 {
     // check if language is C or ASM
-    let c_code_editor = document.getElementById("c_code_editor");
+    let c_wrapper = document.getElementById("c_editor_wrapper");
+    let asm_wrapper = document.getElementById("asm_editor_wrapper");
     let asm_code_editor = document.getElementById("asm_code_editor");
     let asm_code_lines_numbers = document.getElementById("asm_line_numbers");
     let c_code_lines_numbers = document.getElementById("c_line_numbers");
+    
     if (document.getElementById("language_selector").value === "C")
     {
-        c_code_editor.style.display = "block";
+        c_wrapper.style.display = "block";
         c_code_lines_numbers.style.display = "block";
-        asm_code_editor.style.width = "50%";
+        asm_wrapper.style.width = "50%";
         asm_code_editor.disabled = true;
     }
     else
     {
         c_code_lines_numbers.style.display = "none";
-        c_code_editor.style.display = "none";
-        asm_code_editor.style.width = "100%";
+        c_wrapper.style.display = "none";
+        asm_wrapper.style.width = "100%";
         asm_code_editor.disabled = false;
     }
 }
@@ -144,8 +189,6 @@ function viewUpdate()
     registersPanel.children[1].children[2].innerText = `(${registers.d})`;
     registersPanel.children[2].children[1].innerText = fmt(ram._memory[registers.a]);
     registersPanel.children[2].children[2].innerText = `(${ram._memory[registers.a]})`;
-
-    displayScreen();
 }
 function editRom() 
 {
@@ -197,7 +240,7 @@ function editRom()
             if (line == "TEXT") // text section
             {
                 let k = j+1;
-                while (lines[k].startsWith(" ") || lines[k].startsWith("\t"))
+                while (lines[k] != undefined && (lines[k].startsWith(" ") || lines[k].startsWith("\t")))
                 {
                     let start_offset = -1;
                     lines[k] = lines[k].trim();
@@ -404,4 +447,91 @@ function load_sample(name)
         detectLanguage();
         editRom();
     });
+}
+function updateHighlight()
+{
+    const update = (editorId, highlightId) => {
+        const editor = document.getElementById(editorId);
+        const highlight = document.getElementById(highlightId);
+        const code = editor.value;
+        
+        const lines = code.split("\n");
+        highlight.innerHTML = lines.map(line => {
+            // 1. Check for Label (red)
+            if (/^[A-Z0-9_]+:$/.test(line.trim())) {
+                return `<span style="color:#D04040">${escapeHTML(line)}</span>`;
+            }
+            
+            // 2. Process Comments (green) and Strings (orange)
+            let html = "";
+            let i = 0;
+            let inString = false;
+            let stringStart = -1;
+
+            while (i < line.length)
+            {
+                const char = line[i];
+                
+                if (inString) {
+                    if (char === "'")
+                    {
+                        // End of string
+                        inString = false;
+                        html += `<span style="color:#CE9178">'${escapeHTML(line.substring(stringStart + 1, i))}'</span>`;
+                    }
+                    i++;
+                }
+                else
+                {
+                    if (line[i] == 'A' || line[i] == 'D' || (i + 1 < line.length && line[i] == '*' && line[i] == 'A'))
+                    {
+                        html += `<span style="color:#96D2F2">${escapeHTML(line[i] + ((line[i] == '*')?line[i+1]:""))}</span>`;
+                        i+=(line[i] == '*')+1;
+                    }
+                    else if ((char == 'J' || char == 'R') && i + 2 < line.length)
+                    {
+                        if (line[i+1] == 'M' || line[i+1] == 'N' || line[i+1] == 'L' || line[i+1] == 'E' || line[i+1] == 'Q')
+                            if (line[i+2] == 'P' || line[i+2] == 'E' || line[i+2] == 'T' || line[i+2] == 'Q')
+                            {
+                                html += `<span style="color:#A6BD9A">${escapeHTML(line[i]+line[i+1]+line[i+2])}</span>`;
+                                i+=3;
+                                //break;
+                            }
+                    }
+                    else if (char === "#")
+                    {
+                        // Comment starts, goes to end of line
+                        html += `<span style="color:#6A9955">${escapeHTML(line.substring(i))}</span>`;
+                        break;
+                    }
+                    else if (char === "'")
+                    {
+                        // String starts
+                        inString = true;
+                        stringStart = i;
+                        i++;
+                    }
+                    else
+                    {
+                        html += escapeHTML(char);
+                        i++;
+                    }
+                }
+            }
+            
+            // If line ended while in string (unclosed string)
+            if (inString)
+                html += `<span style="color:orange">'${escapeHTML(line.substring(stringStart + 1))}</span>`;
+            
+            return html;
+        }).join("\n");
+        
+        // Handle trailing newline
+        if (code.endsWith("\n")) {
+            highlight.innerHTML += "\n ";
+        }
+    };
+
+    update("asm_code_editor", "asm_highlight");
+    update("c_code_editor", "c_highlight");
 }

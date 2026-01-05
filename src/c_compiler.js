@@ -2,6 +2,97 @@
     virtualArch C compiler
 */
 
+const KEYWORDS = new Set(["if","else","for","while","return","asm","label","write_char","set_cursor","goto","TEXT"]);
+
+function isAlpha(ch){ return /[A-Za-z_]/.test(ch); }
+function isAlnum(ch){ return /[A-Za-z0-9_]/.test(ch); }
+function isDigit(ch){ return /[0-9]/.test(ch); }
+
+function tokenize(input)
+{
+    let tokens = [];
+    let i = 0;
+
+    while (i < input.length){
+        let ch = input[i];
+
+        // skip whitespace
+        if (/\s/.test(ch)){ i++; continue; }
+
+        // single-line comment
+        if (ch === '/' && input[i+1] === '/'){
+            i += 2;
+            while(i < input.length && input[i] !== '\n') i++;
+            continue;
+        }
+
+        // multi-line comment
+        if (ch === '/' && input[i+1] === '*'){
+            i += 2;
+            while(i < input.length && !(input[i]==='*' && input[i+1]==='/')) i++;
+            i += 2;
+            continue;
+        }
+
+        // string literal
+        if (ch === '"'){
+            let j = i+1, val = '';
+            while(j < input.length){
+                if(input[j]==='\\'){ val += input[j]+input[j+1]; j+=2; continue; }
+                if(input[j]==='"') break;
+                val += input[j]; j++;
+            }
+            tokens.push({type:'string', value: `"${val}"`});
+            i = j+1;
+            continue;
+        }
+
+        // char literal
+        if (ch === "'"){
+            let j = i+1, val = '';
+            if(input[j]==='\\'){ val = '\\'+input[j+1]; j+=2; }
+            else { val = input[j]; j++; }
+            if(input[j]!=="'") throw new Error('Unterminated char literal');
+            tokens.push({type:'char', value:`'${val}'`});
+            i = j+1;
+            continue;
+        }
+
+        // number
+        if(isDigit(ch)){
+            let j=i, num='';
+            while(j<input.length && isDigit(input[j])) num+=input[j++];
+            tokens.push({type:'number', value:num});
+            i=j;
+            continue;
+        }
+
+        // identifier or keyword
+        if(isAlpha(ch)){
+            let j=i, id='';
+            while(j<input.length && isAlnum(input[j])) id+=input[j++];
+            tokens.push({type: KEYWORDS.has(id)?'keyword':'identifier', value:id});
+            i=j;
+            continue;
+        }
+
+        // two-character operators
+        const two = input.slice(i,i+2);
+        if(["==","!=","<=",">=","&&","||","++","--","->"].includes(two)){
+            tokens.push({type:'op', value:two}); i+=2; continue;
+        }
+
+        // single-character operators & punctuation
+        if("+-*/%<>=!&|;:,(){}[]".includes(ch)){
+            tokens.push({type:'op', value:ch}); i++; continue;
+        }
+
+        throw new Error('Unknown character: '+ch);
+    }
+
+    return tokens;
+}
+
 function    getAsmBuiltinFunc(funcName, arg)
 {
     switch(funcName)
