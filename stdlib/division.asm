@@ -61,7 +61,7 @@ DIVIDE_LOOP:
     *A = *A + 1
 
     A = DIVIDE_LOOP
-    ; JMPzzkkzk
+    ; JMP
 
 
 DIVIDE_EXIT:
