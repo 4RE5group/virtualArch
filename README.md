@@ -157,6 +157,8 @@ Asm Language improvements
 - [ ] Add a way to include another file to the project
 - [x] Implement stack system with returns
 - [ ] Use WASM to make execution faster
+- [ ] Add length calculation macro in TEXT
+- [ ] Really put data byte by byte into memory
 
 C Language improvements
 - [ ] Handle any kind of C variables and C variable definition (e.g. `char *test = "Hello World"` abd `char test[12] = "Hello World!"` should do the same thing)
