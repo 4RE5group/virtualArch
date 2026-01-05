@@ -358,7 +358,14 @@ function asm_to_opcode(input)
         else if (isNumeric(operation)) // if that's a constant assignation
         {
             if (destination === "A" && !condition)
-                return Number(operation); // return opcode
+			{
+				if (Number(operation) < 2**15)
+                	return Number(operation); // return opcode
+				else {
+					console.error("error: invalid number (> 2^15): "+operation);
+                	return (-1);
+				}
+			}
             if (operation === "0") // A = 0   =>  A = 0 & D
             {
                 operation_symbol = "&";
