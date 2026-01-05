@@ -1,7 +1,7 @@
 # 4re5 Virtual Arch
 A complete minimal computer architecture directly on your browser. 🚀
 
-Based on the nandgame.com architecture, it provides a simple assembly language to interact with the system.
+Based on the [nandgame][nandgame.com] computer architecture, it provides a simple assembly language to interact with the system.
 
 ## How it works.
 This code emulates a virtual simple machine by interpreting op codes (cpu binary operations).
@@ -16,7 +16,7 @@ These op codes are 16 bits of length and are formatted as follow:
        │     │       │       │     │     │    │    │   ╰─ Output is put into A register
        │     │       │       │     ╰─────┴────┴────┴─ Logical/Arithmetical operations flags
        │     │       │       ╰─ Logical/Arithmetical operation type flag
-       │     │       ╰─ Use pointer in operations
+       │     │       ╰─ Use *A instead of A in operations
        │     ╰─ Return to last JUMP flag
        ╰─ Operation/Number input flag
 
@@ -37,6 +37,27 @@ These op codes are 16 bits of length and are formatted as follow:
 
 > [!Warning]
 > Most of unavailable operations could be achieved using [our standard library functions](./stdlib/)
+
+- Register definition
+    - Only `A` register can be directly set to a number `< 2^15` since op codes are 16 bits long
+    - `A` represents a pointer that points to the value in memory accessible by `*A`.
+
+- Mapped memory
+
+| NAME        | MEMORY AREA    | ACCESS MODE | DESCRIPTION                                            |
+|:------------|:---------------|------------:|:-------------------------------------------------------|
+| STACK_PUSH  | RAMSIZE-12     | W           | Push a value to the general purpose stack              |
+| STACK_POP   | RAMSIZE-11     | R           | Pop the top value from the general purpose stack       |
+| TMP0        | RAMSIZE-10     | RW          | Temporary memory cell to store function arguments...   |
+| TMP1        | RAMSIZE-9      | RW          |   ...                                                  |
+| TMP2        | RAMSIZE-8      | RW          |   ...                                                  |
+| TMP3        | RAMSIZE-7      | RW          |   ...                                                  |
+| TMP4        | RAMSIZE-6      | RW          |   ...                                                  |
+| TMP5        | RAMSIZE-5      | RW          |   ...                                                  |
+| TMP6        | RAMSIZE-4      | RW          |   ...                                                  |
+| CURSOR      | RAMSIZE-3      | RW          | Cursor position on the virtual terminal                |
+| WRITE       | RAMSIZE-2      | W           | Write a character to the screen at CURSOR position     |
+| KEYPRESS    | RAMSIZE        | R           | Read keyboard input                                    |
 
 ### Registers
 Operations can be processed using 3 main registers: `A`, `D` and `*A` (which is used as a pointer for ram access)
