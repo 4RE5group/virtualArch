@@ -46,17 +46,17 @@ These op codes are 16 bits of length and are formatted as follow:
 
 | NAME        | MEMORY AREA    | ACCESS MODE | DESCRIPTION                                            |
 |:------------|:---------------|------------:|:-------------------------------------------------------|
-| STACK_PUSH  | RAMSIZE-12     | W           | Push a value to the general purpose stack              |
-| STACK_POP   | RAMSIZE-11     | R           | Pop the top value from the general purpose stack       |
-| TMP0        | RAMSIZE-10     | RW          | Temporary memory cell to store function arguments...   |
-| TMP1        | RAMSIZE-9      | RW          |   ...                                                  |
-| TMP2        | RAMSIZE-8      | RW          |   ...                                                  |
-| TMP3        | RAMSIZE-7      | RW          |   ...                                                  |
-| TMP4        | RAMSIZE-6      | RW          |   ...                                                  |
-| TMP5        | RAMSIZE-5      | RW          |   ...                                                  |
-| TMP6        | RAMSIZE-4      | RW          |   ...                                                  |
-| CURSOR      | RAMSIZE-3      | RW          | Cursor position on the virtual terminal                |
-| WRITE       | RAMSIZE-2      | W           | Write a character to the screen at CURSOR position     |
+| STACK_PUSH  | RAMSIZE - 12   | W           | Push a value to the general purpose stack              |
+| STACK_POP   | RAMSIZE - 11   | R           | Pop the top value from the general purpose stack       |
+| TMP0        | RAMSIZE - 10   | RW          | Temporary memory cell to store function arguments...   |
+| TMP1        | RAMSIZE - 9    | RW          |   ...                                                  |
+| TMP2        | RAMSIZE - 8    | RW          |   ...                                                  |
+| TMP3        | RAMSIZE - 7    | RW          |   ...                                                  |
+| TMP4        | RAMSIZE - 6    | RW          |   ...                                                  |
+| TMP5        | RAMSIZE - 5    | RW          |   ...                                                  |
+| TMP6        | RAMSIZE - 4    | RW          |   ...                                                  |
+| CURSOR      | RAMSIZE - 3    | RW          | Cursor position on the virtual terminal                |
+| WRITE       | RAMSIZE - 2    | W           | Write a character to the screen at CURSOR position     |
 | KEYPRESS    | RAMSIZE        | R           | Read keyboard input                                    |
 
 ### Registers
