@@ -144,6 +144,8 @@ function puttab(e)
         const end   = ta.selectionEnd;
 
         ta.setRangeText("\t", start, end, "end");
+        editRom(); 
+        updateHighlight();
     }
 }
 
@@ -260,6 +262,21 @@ function editRom()
                         }
                         ram._memory[mem_pos++] = 0;
                         console.log("registered a string at offset "+(mem_pos-elements[1].length+1));
+                    } else if (elements[1].startsWith('[') && elements[1].endsWith(']')) {
+                        start_offset = mem_pos;
+                        let content = elements[1].substring(1, elements[1].length - 1);
+                        let nums = content.split(",");
+                        for(let raw of nums) {
+                            let val = raw.trim();
+                            if (val === "") continue;
+                            if (isNumeric(val)) {
+                                ram._memory[mem_pos++] = Number(val);
+                            } else {
+                                console.error("error: invalid array element: '" + val + "'");
+                                return;
+                            }
+                        }
+                        console.log("registered an array at offset "+start_offset);
                     } else if (isNumeric(elements[1])) {
                         start_offset = mem_pos;
                         ram._memory[mem_pos++] = Number(elements[1]);
@@ -274,9 +291,7 @@ function editRom()
                 }
             }
             else
-            {
                 definitions.set(line, j.toString());
-            }
             lines[j] = "#"+lines[j]; // comment line to skip it when running
         }
         j++;
@@ -446,6 +461,7 @@ function load_sample(name)
         }
         detectLanguage();
         editRom();
+        updateHighlight();
     });
 }
 function updateHighlight()
@@ -454,82 +470,91 @@ function updateHighlight()
         const editor = document.getElementById(editorId);
         const highlight = document.getElementById(highlightId);
         const code = editor.value;
-        
+
         const lines = code.split("\n");
         highlight.innerHTML = lines.map(line => {
-            // 1. Check for Label (red)
-            if (/^[A-Z0-9_]+:$/.test(line.trim())) {
-                return `<span style="color:#D04040">${escapeHTML(line)}</span>`;
+            // Label
+            if (/^\s*[A-Za-z0-9_]+:\s*$/.test(line)) {
+                return `<span style="color: #D04040">${escapeHTML(line)}</span>`;
             }
-            
-            // 2. Process Comments (green) and Strings (orange)
+
+            // Definition (preserve spacing)
+            let regex_definition = /^(\s*(?:A|a|D|d|\*A|\*a)\s*)(=)(\s*[A-Za-z0-9_']+\s*)$/.exec(line);
+            if (regex_definition)
+            {
+                let value = regex_definition[3].trim();
+                let value_color;
+
+                if (isNumeric(value))
+                    value_color = "#b5cea8";
+                else if (value.startsWith("'") && value.endsWith("'"))
+                    value_color = "#CE9178";
+                else
+                    value_color = "#D04040";
+
+                return (
+                    `<span>` +
+                    `<span style="color:#96D2F2">${escapeHTML(regex_definition[1])}</span>` +
+                    `<span>${escapeHTML(regex_definition[2])}</span>` +
+                    `<span style="color:${value_color}">${escapeHTML(regex_definition[3])}</span>` +
+                    `</span>`
+                );
+            }
+
             let html = "";
             let i = 0;
             let inString = false;
+            let quoteChar = null;
             let stringStart = -1;
-
             while (i < line.length)
             {
                 const char = line[i];
-                
-                if (inString) {
-                    if (char === "'")
+
+                if (inString)
+                {
+                    if (char === quoteChar)
                     {
-                        // End of string
                         inString = false;
-                        html += `<span style="color:#CE9178">'${escapeHTML(line.substring(stringStart + 1, i))}'</span>`;
+                        html += `<span style="color: #CE9178">${quoteChar}${escapeHTML(line.substring(stringStart + 1, i))}${quoteChar}</span>`;
                     }
-                    i++;
                 }
                 else
                 {
-                    if (line[i] == 'A' || line[i] == 'D' || (i + 1 < line.length && line[i] == '*' && line[i] == 'A'))
+                    if (
+                        (char === 'J' || char === 'R') &&
+                        i + 2 < line.length &&
+                        "MNLEQG".includes(line[i + 1]) &&
+                        "PETQ".includes(line[i + 2])
+                    )
                     {
-                        html += `<span style="color:#96D2F2">${escapeHTML(line[i] + ((line[i] == '*')?line[i+1]:""))}</span>`;
-                        i+=(line[i] == '*')+1;
-                    }
-                    else if ((char == 'J' || char == 'R') && i + 2 < line.length)
-                    {
-                        if (line[i+1] == 'M' || line[i+1] == 'N' || line[i+1] == 'L' || line[i+1] == 'E' || line[i+1] == 'Q')
-                            if (line[i+2] == 'P' || line[i+2] == 'E' || line[i+2] == 'T' || line[i+2] == 'Q')
-                            {
-                                html += `<span style="color:#A6BD9A">${escapeHTML(line[i]+line[i+1]+line[i+2])}</span>`;
-                                i+=3;
-                                //break;
-                            }
+                        html += `<span style="color: #c586c0">${escapeHTML(line.substr(i, 3))}</span>`;
+                        i += 2;
                     }
                     else if (char === "#")
                     {
-                        // Comment starts, goes to end of line
-                        html += `<span style="color:#6A9955">${escapeHTML(line.substring(i))}</span>`;
+                        html += `<span style="color: #6A9955">${escapeHTML(line.substring(i))}</span>`;
                         break;
                     }
-                    else if (char === "'")
+                    else if (char === "'" || char === '"')
                     {
-                        // String starts
                         inString = true;
+                        quoteChar = char;
                         stringStart = i;
-                        i++;
                     }
                     else
-                    {
                         html += escapeHTML(char);
-                        i++;
-                    }
                 }
+                i++;
             }
-            
-            // If line ended while in string (unclosed string)
+
             if (inString)
-                html += `<span style="color:orange">'${escapeHTML(line.substring(stringStart + 1))}</span>`;
-            
+                html += `<span style="color: orange">${quoteChar}${escapeHTML(line.substring(stringStart + 1))}</span>`;
+
             return html;
         }).join("\n");
-        
-        // Handle trailing newline
-        if (code.endsWith("\n")) {
+
+        if (code.endsWith("\n"))
             highlight.innerHTML += "\n ";
-        }
     };
 
     update("asm_code_editor", "asm_highlight");

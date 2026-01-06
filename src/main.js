@@ -5,7 +5,7 @@
 // definitions
 const RAMSIZE = 20000; // ram size in bytes
 const PROGRAM_TEXT_MEMSTART = 1000; // start offset of the TEXT memory
-const PROGRAM_TEXT_MEMSTOP  = 5000; // end offset of the TEXT memory
+const PROGRAM_TEXT_MEMSTOP  = 10000; // end offset of the TEXT memory
 
 
 // listing of all memory ranges mapped

@@ -2,8 +2,8 @@
     Terminal displaying functions
 */
 
-const SCREEN_WIDTH  = 640;
-const SCREEN_HEIGHT = 400;
+const SCREEN_WIDTH  = 992;
+const SCREEN_HEIGHT = 640;
 const SCALE_RATIO   = 1;
 const FONT_SIZE     = 16;
 

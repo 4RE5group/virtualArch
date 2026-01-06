@@ -46,6 +46,8 @@ These op codes are 16 bits of length and are formatted as follow:
 
 | NAME        | MEMORY AREA    | ACCESS MODE | DESCRIPTION                                            |
 |:------------|:---------------|------------:|:-------------------------------------------------------|
+| COLOR_FG    | RAMSIZE - 14   | RW          | Foreground Color of the text written using WRITE       |
+| COLOR_BG    | RAMSIZE - 13   | RW          | Background Color of the text written using WRITE       |
 | STACK_PUSH  | RAMSIZE - 12   | W           | Push a value to the general purpose stack              |
 | STACK_POP   | RAMSIZE - 11   | R           | Pop the top value from the general purpose stack       |
 | TMP0        | RAMSIZE - 10   | RW          | Temporary memory cell to store function arguments...   |
