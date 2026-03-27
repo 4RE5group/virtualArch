@@ -182,6 +182,7 @@ Asm Language improvements
 - [ ] Use WASM to make execution faster
 - [ ] Add length calculation macro in TEXT
 - [ ] Really put data byte by byte into memory
+- [ ] Add code snippets like `init.stack` or `pop.A`, `push.D`
 
 C Language improvements
 - [ ] Handle any kind of C variables and C variable definition (e.g. `char *test = "Hello World"` abd `char test[12] = "Hello World!"` should do the same thing)
