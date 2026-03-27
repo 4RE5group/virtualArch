@@ -1,7 +1,7 @@
 # 4re5 Virtual Arch
 A complete minimal computer architecture directly on your browser. 🚀
 
-Based on the [nandgame](nandgame.com) computer architecture, it provides a simple assembly language to interact with the system.
+Based on the [nandgame](https://nandgame.com) computer architecture, it provides a simple assembly language to interact with the system.
 
 ## How it works.
 This code emulates a virtual simple machine by interpreting op codes (cpu binary operations).
