@@ -9,16 +9,14 @@ This code emulates a virtual simple machine by interpreting op codes (cpu binary
 These op codes are 16 bits of length and are formatted as follow:
 
     | ci | - | - | * | - | u | op1 | op0 | zx | sw | a | d | *a | lt | eq | gt |
-       ┬     ┬       ┬       ┬     ┬     ┬    ┬    ┬   ┬   ┬    ┬    ┬    ┬    ┬ 
-       │     │       │       │     │     │    │    │   │   │    │    ╰────┴────┴─ Jump option flags
-       │     │       │       │     │     │    │    │   │   │    ╰─ Output is put into ram pointed by A
-       │     │       │       │     │     │    │    │   │   ╰─ Output is put into D register
-       │     │       │       │     │     │    │    │   ╰─ Output is put into A register
-       │     │       │       │     ╰─────┴────┴────┴─ Logical/Arithmetical operations flags
-       │     │       │       ╰─ Logical/Arithmetical operation type flag
-       │     │       ╰─ Use *A instead of A in operations
-       │     ╰─ -
-
+       ┬           ┬       ┬     ┬     ┬    ┬    ┬   ┬   ┬    ┬    ┬    ┬    ┬ 
+       │           │       │     │     │    │    │   │   │    │    ╰────┴────┴─ Jump option flags
+       │           │       │     │     │    │    │   │   │    ╰─ Output is put into ram pointed by A
+       │           │       │     │     │    │    │   │   ╰─ Output is put into D register
+       │           │       │     │     │    │    │   ╰─ Output is put into A register
+       │           │       │     ╰─────┴────┴────┴─ Logical/Arithmetical operations flags
+       │           │       ╰─ Logical/Arithmetical operation type flag
+       │           ╰─ Use *A instead of A in operations
        ╰─ Operation/Number input flag
 
 ## :book: Assembly manual
