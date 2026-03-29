@@ -11,6 +11,5 @@ LOOP:
     A = CURSOR  # address of the character position on screen
     *A = *A + 1 # increment it   
 
-    0; RET      # clean up the call stack
     A = LOOP    # set the jump line address
     A; JMP      # repeat the operation

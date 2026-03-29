@@ -8,7 +8,7 @@ This code emulates a virtual simple machine by interpreting op codes (cpu binary
 
 These op codes are 16 bits of length and are formatted as follow:
 
-    | ci | ret | - | * | - | u | op1 | op0 | zx | sw | a | d | *a | lt | eq | gt |
+    | ci | - | - | * | - | u | op1 | op0 | zx | sw | a | d | *a | lt | eq | gt |
        ┬     ┬       ┬       ┬     ┬     ┬    ┬    ┬   ┬   ┬    ┬    ┬    ┬    ┬ 
        │     │       │       │     │     │    │    │   │   │    │    ╰────┴────┴─ Jump option flags
        │     │       │       │     │     │    │    │   │   │    ╰─ Output is put into ram pointed by A
@@ -17,14 +17,17 @@ These op codes are 16 bits of length and are formatted as follow:
        │     │       │       │     ╰─────┴────┴────┴─ Logical/Arithmetical operations flags
        │     │       │       ╰─ Logical/Arithmetical operation type flag
        │     │       ╰─ Use *A instead of A in operations
-       │     ╰─ Return to last JUMP flag
+       │     ╰─ -
+
        ╰─ Operation/Number input flag
 
 ## :book: Assembly manual
 ### Summary
-1. [Basics of Asm language]()
+1. [Basics of Asm language](#basics-of-asm-language)
 2. [Registers](#registers)
 3. [Conditions](#conditions)
+4. [Labels and TEXT section](#labels-and-text-section)
+5. [Preprocessor Directives](#preprocessor-directives)
 
 ### Basics of Asm language
 - Arithmetic Operations
@@ -123,24 +126,65 @@ A = 15
 A; JMP # will jump to line `15`.
 ```
 
+### Labels and TEXT section
+The assembler supports line labelling to safely perform jumps without needing to calculate line numbers manually. Just append a `:` to the name.
 
-> After a jump, the current line is pushed into the stack. You can then use `RET` to return to the parent function at the line of the jump.
-
-
-e.g
 ```
+MY_LOOP:
+    A = 1
+    A = MY_LOOP
+    ; JMP
+```
+
+You can also use a `TEXT:` section to allocate static data in memory before program execution. Types supported are numbers, strings, and arrays.
+
+```
+TEXT:
+    my_var    42
+    my_string "Hello World"
+    my_arr    [1, 2, 3]
+
 MAIN:
-    A = FUNC1
-    A; JMP
-    # ...
-
-FUNC1:
-    ; RET # will go back to the line after the JMP 
+    A = my_var   # A is the memory address containing 42
+    D = *A       # D now contains 42
 ```
 
-> [!Warning]
-> All functions **MUST** end with `0; RET` so the stack remain empty after all jumps or at least do a **CLEANING FUNCTION**
-> Note that `; RET` gets you back to the caller line but `0; RET` continues the execution.
+### Preprocessor Directives
+The compiler includes a preprocessor capable of handling constants and macros.
+
+#### DEFINE
+Replaces all instances of a specific text block with a defined string across the code. Variables defined in `script.js` (like `CURSOR`, `TMP0`, etc.) use this system.
+
+```
+#DEFINE MAX_COUNT 10
+
+MAIN:
+    A = MAX_COUNT
+```
+
+#### MACRO
+For repetitive blocks of code, you can define macros. Macros can take arguments and consist of multiple lines. Use `#MACRO name arg1 arg2` to start, and close the block with `#ENDMACRO`. Calling a macro substitutes the name and its comma-separated arguments directly into the text at compilation.
+
+```
+#MACRO SET_MEM addr val
+    A = val
+    D = A
+    A = addr
+    *A = D
+#ENDMACRO
+
+#MACRO GOTO label
+    A = label
+    ; JMP
+#ENDMACRO
+
+MAIN:
+    SET_MEM 1000, 42  # Puts 42 at memory address 1000
+    GOTO MY_END       # Custom jump shortcut
+
+MY_END:
+    GOTO MY_END
+```
 
 
 ## :book: C manual
@@ -178,7 +222,7 @@ Asm Language improvements
 - [x] Add a text section that puts constants into memory
 - [ ] Replicate the C stdlib functions in ASM
 - [ ] Add a way to include another file to the project
-- [x] Implement stack system with returns
+- [x] Implement stack system
 - [ ] Use WASM to make execution faster
 - [ ] Add length calculation macro in TEXT
 - [ ] Really put data byte by byte into memory
@@ -186,7 +230,7 @@ Asm Language improvements
 
 C Language improvements
 - [ ] Handle any kind of C variables and C variable definition (e.g. `char *test = "Hello World"` abd `char test[12] = "Hello World!"` should do the same thing)
-- [ ] Handle multi-arg functions call + returns
+- [ ] Handle multi-arg functions call + returns using macros
 - [ ] Add for and while loops
 - [ ] Add if else conditions
 - [ ] Add ability to do chained conditions
@@ -199,7 +243,7 @@ Known Bugs
 - [x] Writing 'if (' or 'for' inside of the code editor is causing a crash [fixed here](https://github.com/4RE5group/virtualArch/commit/30b30e21a673cb056dc449a8d7bb0adee8759752)
 - [ ] Some C instructions are declared as errors/unrecognized. We need to fix C instruction types recognition
 - [ ] When running C code, the line highlight isn't right
-- [ ] `for (int i = j; i < 5; i++)` returns an error. Need to define i to 0 in `TEXT` section then define it before the for
+- [ ] `for (int i = j; i < 5; i++)` is causing an error. Need to define i to 0 in `TEXT` section then define it before the for
 - [ ] Cant stack 2 `for`. The compiler comments the second for
 - [ ] `for` loops does not initialize var to the given value (only placed in `TEXT`)
 - [x] `; JMP` operation is consierated as a number input instead of an instruction

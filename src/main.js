@@ -12,14 +12,11 @@ const PROGRAM_TEXT_MEMSTOP  = 10000; // end offset of the TEXT memory
 const memoryMap = [];
 // rom containing program
 var rom = [];
-// stacktrace of all jumps
-var stackTrace = [];
 
 // device virtual memory
 const ram = {
     _memory: new Array(RAMSIZE).fill(0),
     _stack: [],
-    _call_stack: [],
     _mapping: [],
     get read()
     {
@@ -126,7 +123,6 @@ function    asm_exec_opcode(opcode)
     let destination =   (opcode & parseInt("0000000000111000", 2)) >> 3;
     let calculation =   (opcode & parseInt("0000011111000000", 2)) >> 6;
     let condition =     (opcode & parseInt("0000000000000111", 2));
-    let ret =           Number(opcode & (1 << 14))?1:0;
     
     if (ci === 0) // set default register to value
         registers.a = Number(opcode & (~(1 << 15)));
@@ -211,17 +207,8 @@ function    asm_exec_opcode(opcode)
         let eq  = Number(condition & (1 << 1))?1:0;
         let gt  = Number(condition & 1)?1:0;
 
-        if ((lt === 1 && output < 0) || (eq === 1 && output === 0) || (gt === 1 && output > 0) && (ret === 0))
-        {
-            ram._call_stack.push(registers.pc); // add jump line to stack
+        if ((lt === 1 && output < 0) || (eq === 1 && output === 0) || (gt === 1 && output > 0))
             registers.pc = registers.a; // change current line to the value of the A reg
-        }
-        if (ret === 1 && ram._call_stack.length > 0)
-        {
-            let v = ram._call_stack.pop(); // 0; RET can just POP without going back to caller
-            if (output > 0)
-                registers.pc = v; // put the last used jump address to the
-        }
     }
 }
 
@@ -467,21 +454,17 @@ function asm_to_opcode(input)
     // Parse jump condition
     if (condition)
     {
-	    let ret = (condition === "RET") ? 1 : 0;
         let lt = (condition === "JNE" || condition === "JLT" || condition === "JLE" || condition === "JMP") ? 1 : 0;
         let eq = (condition === "JEQ" || condition === "JLE" || condition === "JMP" || condition === "JGE") ? 1 : 0;
         let gt = (condition === "JNE" || condition === "JGT" || condition === "JGE" || condition === "JMP") ? 1 : 0;
 
-        if (lt === 0 && eq === 0 && gt === 0 && ret === 0)
+        if (lt === 0 && eq === 0 && gt === 0)
         {
             console.error("error: invalid condition: '"+condition+"'");
             return (-1);
         }
         // Set condition bits (bits 2-0)
         opcode |= ((lt << 2) | (eq << 1) | gt);
-
-	    // set return bit
-	    opcode |= (ret << 14);
     }
 
     return (opcode);

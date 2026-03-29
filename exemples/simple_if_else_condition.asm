@@ -31,7 +31,5 @@ LOOP:
     A ;JMP
 
 STOP:
-    0; RET       # remove last call
-    0; RET       # clean up the call stack
     A = STOP
     A; JMP
