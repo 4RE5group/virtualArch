@@ -1,6 +1,6 @@
 # 4re5 Virtual Arch
 
-<img width="500" height="1000" alt="image" src="https://github.com/user-attachments/assets/27bf681e-831c-4273-b2b5-44dbacbd753f" />
+<img width="500" alt="image" src="https://github.com/user-attachments/assets/27bf681e-831c-4273-b2b5-44dbacbd753f" />
 
 A complete minimal computer architecture directly on your browser. 🚀
 
