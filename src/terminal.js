@@ -35,7 +35,9 @@ function RGB332_to_RGB(color)
     let g = Math.round(255 * ((color >> 2) & 7) / 7);
     let r = Math.round(255 * ((color >> 5) & 7) / 7);
 
-    return (`#${r.toString(16)}${g.toString(16)}${b.toString(16)}`);
+    const toHex = (v) => v.toString(16).padStart(2, '0');
+
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
 function writeCharacter(column, row, character, fg, bg)

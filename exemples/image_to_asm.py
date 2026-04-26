@@ -1,141 +1,135 @@
-# 4re5 group all rights reserved
-
 from PIL import Image
 
-# change this according to the width and height of the terminal
 SCREEN_WIDTH = 992
 SCREEN_HEIGHT = 640
 FONT_SIZE = 16
 
-NEW_WIDTH = int(SCREEN_WIDTH/FONT_SIZE)
-NEW_HEIGHT = int(SCREEN_HEIGHT/FONT_SIZE)
+MAX_W = SCREEN_WIDTH // FONT_SIZE
+MAX_H = SCREEN_HEIGHT // FONT_SIZE
 
 path = input("Enter image path: ")
 img_original = Image.open(path).convert("RGB")
 
-ratio = img_original.height / img_original.width
-if int(NEW_WIDTH * ratio) < NEW_HEIGHT:
-    NEW_HEIGHT = int(NEW_WIDTH * ratio)
+# keep aspect ratio (cleaner)
+ratio = img_original.width / img_original.height
+
+if MAX_W / ratio <= MAX_H:
+    NEW_WIDTH = MAX_W
+    NEW_HEIGHT = int(MAX_W / ratio)
 else:
-    NEW_WIDTH = int(NEW_HEIGHT * (img_original.width / img_original.height))
+    NEW_HEIGHT = MAX_H
+    NEW_WIDTH = int(MAX_H * ratio)
 
 img = img_original.resize((NEW_WIDTH, NEW_HEIGHT), Image.NEAREST)
 
 img.show()
 
-image_data = "["
-i = 0
-for r, g, b in img.getdata():
-    # RGB888 => RGB332
-    r = int((r / 255) * 7)
-    g = int((g / 255) * 7)
-    b = int((b / 255) * 3)
+image_data = []
+
+for i, (r8, g8, b8) in enumerate(img.getdata()):
+    # RGB888 -> RGB332
+    r = (r8 * 7) // 255
+    g = (g8 * 7) // 255
+    b = (b8 * 3) // 255
+    
 
     color = (r << 5) | (g << 2) | b
-    image_data += str(color)
+    image_data.append(color)
 
-    if i == NEW_WIDTH * NEW_HEIGHT - 1:
-        image_data += ']'
-    else:
-        image_data += ', '
-    i += 1
+    # convert BACK to RGB888 for terminal display
+    r_term = (r * 255) // 7
+    g_term = (g * 255) // 7
+    b_term = (b * 255) // 3
 
-print(f"Generated a new picture: size={{{NEW_WIDTH}x{NEW_HEIGHT}}}")
+    print(f'\033[48;2;{r_term};{g_term};{b_term}m  \033[0m', end='')
+
+    if (i + 1) % NEW_WIDTH == 0:
+        print()
+
+print("Press any key to continue...", end='')
+input()
+
+print(f"Generated a new picture: size={NEW_WIDTH}x{NEW_HEIGHT}")
+
 output = "output.asm"
 with open(output, "w") as f:
     f.write(f"""TEXT:
-	image_data {image_data}
-	i 0
-	k 0
-	image_data_len {NEW_WIDTH * NEW_HEIGHT}
-	image_size {NEW_WIDTH}
+\timage_data [{','.join(map(str, image_data))}]
+\ti 0
+\tk 0
+\timage_data_len {NEW_WIDTH * NEW_HEIGHT}
+\timage_size {NEW_WIDTH}
 
 MAIN:
-	A = i
-	*A = 0
+\tA = i
+\t*A = 0
 
-	A = k
-	*A = 0
-	
-	A = CURSOR
-	*A = 0
+\tA = k
+\t*A = 0
+\t
+\tA = CURSOR
+\t*A = 0
+
 LOOP:
-	# calculate image_data[i]
-	A = image_data
-	D = A
-	A = i
-	D = D + *A
-	A = D
-	D = *A
+\t# --- exit if i >= image_data_len ---
+\tA = i
+\tD = *A
+\tA = image_data_len
+\tA = *A
+\tD = D - A
+\tA = EXIT
+\tD; JGE
 
-	# set cell color
-	A = COLOR_BG
-	*A = D
-	A = COLOR_FG
-	*A = D
+\t# --- load image_data[i] ---
+\tA = image_data
+\tD = A
+\tA = i
+\tD = D + *A
+\tA = D
+\tD = *A
 
-	A = i
-	D = *A
-	A = image_data_len 
-	A = *A
-	D = A - D
-	A = EXIT     # quit if all the pixels are drawn
-	D; JLE
+\t# --- set colors ---
+\tA = COLOR_BG
+\t*A = D
+\tA = COLOR_FG
+\t*A = D
 
-	A = ' '
-	D = A
-	A = WRITE
-	*A = D       # write a blank character
+\t# --- write pixel ---
+\tA = ' '
+\tD = A
+\tA = WRITE
+\t*A = D
 
-	A = CURSOR
-	*A = *A + 1
+\t# --- move cursor forward ---
+\tA = CURSOR
+\t*A = *A + 1
 
-	# handle custom image width
-	A = k
-	D = *A
-	A = image_size
-	D = D - *A      # if (k-image_size < 0)
-	A = NEXT
-	D; JLT
+\t# --- increment column ---
+\tA = k
+\t*A = *A + 1
 
-GOTO_NEWLINE:
-	A = CURSOR
-	*A = *A + 1
+\t# --- check end of line ---
+\tA = k
+\tD = *A
+\tA = image_size
+\tD = D - *A
+\tA = NEXT
+\tD; JLT
 
-	# while (k < 62) CURSOR++
-	
-	# if k-62 < 0 loop
-	A = k
-	D = *A
-	A = 60
-	D = D - A
-
-	A = k
-	*A = *A + 1
-
-	A = GOTO_NEWLINE
-	D; JLT
-
-
-	A = k      # k = -1
-	*A = 0 - 1
-
-	A = i
-	*A = *A - 1
+\t# --- newline ---
+\tA = k
+\t*A = 0
 
 NEXT:
-	# increment  current line count
-	A = k
-	*A = *A + 1
+\tA = i
+\t*A = *A + 1
 
-	# increment pixel count
-	A = i
-	*A = *A + 1
-
-	A = LOOP
-	A; JMP
+\tA = LOOP
+\tA; JMP
 
 EXIT:
-	A = EXIT
-	A; JMP""")
-    print(f"Wrote {output}")
+\tA = EXIT
+\tA; JMP
+""")
+
+print(f"Wrote {output}")

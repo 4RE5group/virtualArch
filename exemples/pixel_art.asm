@@ -14,8 +14,18 @@ MAIN:
 	
 	A = CURSOR
 	*A = 0
+
 LOOP:
-	# calculate image_data[i]
+	# --- exit if i >= image_data_len ---
+	A = i
+	D = *A
+	A = image_data_len
+	A = *A
+	D = D - A
+	A = EXIT
+	D; JGE
+
+	# --- load image_data[i] ---
 	A = image_data
 	D = A
 	A = i
@@ -23,67 +33,39 @@ LOOP:
 	A = D
 	D = *A
 
-	# set cell color
+	# --- set colors ---
 	A = COLOR_BG
 	*A = D
 	A = COLOR_FG
 	*A = D
 
-	A = i
-	D = *A
-	A = image_data_len 
-	A = *A
-	D = A - D
-	A = EXIT     # quit if all the pixels are drawn
-	D; JLE
-
+	# --- write pixel ---
 	A = ' '
 	D = A
 	A = WRITE
-	*A = D       # write a blank character
+	*A = D
 
+	# --- move cursor forward ---
 	A = CURSOR
 	*A = *A + 1
 
-	# handle custom image width
+	# --- increment column ---
+	A = k
+	*A = *A + 1
+
+	# --- check end of line ---
 	A = k
 	D = *A
 	A = image_size
-	D = D - *A      # if (k-image_size < 0)
+	D = D - *A
 	A = NEXT
 	D; JLT
 
-GOTO_NEWLINE:
-	A = CURSOR
-	*A = *A + 1
-
-	# while (k < 62) CURSOR++
-	
-	# if k-62 < 0 loop
+	# --- newline ---
 	A = k
-	D = *A
-	A = 60
-	D = D - A
-
-	A = k
-	*A = *A + 1
-
-	A = GOTO_NEWLINE
-	D; JLT
-
-
-	A = k      # k = -1
-	*A = 0 - 1
-
-	A = i
-	*A = *A - 1
+	*A = 0
 
 NEXT:
-	# increment  current line count
-	A = k
-	*A = *A + 1
-
-	# increment pixel count
 	A = i
 	*A = *A + 1
 
